@@ -220,6 +220,30 @@ test("startup uses the native App and Open dialog, including the aggregation cho
     await information
         .getByRole("button", { name: "Close", exact: true })
         .click();
+
+    await page.getByRole("button", { name: "Open", exact: true }).click();
+    await expect(
+        page.getByRole("link", { name: "Provenance", exact: true }),
+    ).toHaveAttribute(
+        "href",
+        "https://github.com/genome-spy/genomespy-dataset-recipes/tree/main/recipes/encode-mouse-fetal-chromatin-mm10",
+    );
+    await expect(
+        page.getByRole("dialog").filter({ hasText: "Open Figwig file" }),
+    ).toContainText("mm10 chr1");
+    const exampleURL =
+        "https://data.genomespy.app/datasets/encode-mouse-fetal-chromatin-mm10/v2/chromatin.fw";
+    // Keep the example button on its real opening path without fetching biological data in CI.
+    await page.route(exampleURL, async (route) => {
+        await route.fulfill({
+            response: await route.fetch({ url: fixtureOrigin + "/signed.fw" }),
+        });
+    });
+    await page
+        .getByRole("button", { name: "Open example", exact: true })
+        .click();
+    await expectOpened(page, "chromatin.fw");
+    expect(new URL(page.url()).searchParams.get("url")).toBe(exampleURL);
 });
 
 test("local and cross-origin sources render the same signed hg38 signal", async ({

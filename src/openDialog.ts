@@ -11,6 +11,11 @@ import {
 import { DEFAULT_QUERY_MODE, type QueryMode } from "./createViewerSpec";
 import type { ViewerState } from "./viewerController";
 
+const EXAMPLE_URL =
+    "https://data.genomespy.app/datasets/encode-mouse-fetal-chromatin-mm10/v2/chromatin.fw";
+const EXAMPLE_PROVENANCE_URL =
+    "https://github.com/genome-spy/genomespy-dataset-recipes/tree/main/recipes/encode-mouse-fetal-chromatin-mm10";
+
 // App's public dialog export omits its implementation types from the npm archive.
 // Describe only the documented BaseDialog extension methods used here.
 interface NativeDialog extends LitElement {
@@ -43,6 +48,11 @@ export class OpenDialog extends NativeDialogBase {
             .opening-status {
                 white-space: pre-wrap;
                 overflow-wrap: anywhere;
+            }
+            .example-actions {
+                display: flex;
+                align-items: center;
+                gap: 0.75em;
             }
         `,
     ];
@@ -121,6 +131,31 @@ export class OpenDialog extends NativeDialogBase {
                     >The server must allow cross-origin access and byte-range
                     requests.</small
                 >
+            </div>
+            <div class="gs-form-group">
+                <div class="example-actions">
+                    <button
+                        class="btn"
+                        type="button"
+                        ?disabled=${this.busy}
+                        @click=${() => {
+                            this.url = EXAMPLE_URL;
+                            this.#openUrl();
+                        }}
+                    >
+                        Open example
+                    </button>
+                    <a
+                        href=${EXAMPLE_PROVENANCE_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Provenance</a
+                    >
+                </div>
+                <small>
+                    ENCODE mouse fetal chromatin: 256 tracks, mm10 chr1.
+                    Annotation tracks currently use hg38.
+                </small>
             </div>
             <div class="gs-form-group">
                 <label for="signal-mode">Signal aggregation</label>

@@ -49,6 +49,12 @@ anywhere in the viewer. File information shows the current source, track count,
 metadata fields, and dependency identity. Local files stay in your browser and
 require reselection after reloading.
 
+The Open dialog includes an ENCODE mouse fetal chromatin example with 256 tracks
+on mm10 chromosome 1 and a link to its
+[dataset recipe](https://github.com/genome-spy/genomespy-dataset-recipes/tree/main/recipes/encode-mouse-fetal-chromatin-mm10)
+for provenance. Its coordinates differ from the viewer's current hg38 annotation
+tracks.
+
 The viewer currently assumes **hg38**. Files must use coordinates compatible with
 that assembly. Assembly discovery, compatibility inference, and switching are
 separate work tracked in [GenomeSpy #629](https://github.com/genome-spy/genome-spy/issues/629).
