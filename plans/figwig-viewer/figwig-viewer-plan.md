@@ -1,6 +1,6 @@
 # Figwig Viewer implementation plan
 
-Status: milestones 1–3 implemented and verified; local snapshots replaced by the App preview at 58bd423. The stable npm release and Pages publication remain pending.
+Status: milestones 1–3 implemented and verified. The App preview at 58bd423 is approved for the temporary demo. The Pages workflow is implemented; repository configuration and first deployment remain pending. Stable npm migration is deferred.
 
 Written: 2026-10-29.
 
@@ -12,7 +12,7 @@ Original implementation baseline (superseded by the preview dependency below): G
 
 A standalone, browser-only application deployed to GitHub Pages. Users open a local Figwig file through a file picker or drag-and-drop, or open a remote file through an HTTPS URL. The application inspects the file, generates a GenomeSpy App specification, and provides the existing sample-analysis interface with a small Figwig-specific plugin.
 
-The project lives entirely in this directory. GenomeSpy remains an upstream dependency. The private genome-spy/figwig-viewer repository is initialized. Implementation through milestone 3 is complete on a feature branch; release migration and publication remain later work.
+The project lives entirely in this directory. GenomeSpy remains an upstream dependency. The private genome-spy/figwig-viewer repository is initialized. Implementation through milestone 3 is complete on a feature branch. This is a temporary Figwig-viewing demo; the pinned preview is approved for Pages publication, and stable-release migration is deferred.
 
 ## Goals and scope
 
@@ -74,9 +74,10 @@ JavaScript referenced by its development exports. The existing dialog typing
 bridge is still needed because the public dialog declarations reference omitted
 implementation files. These are upstream App packaging issues.
 
-Before the first Pages deployment, replace the preview dependency with a matching
-stable npm release as previously agreed. Validate clean installation, public API
-types, local/remote opening, and the production build before enabling deployment.
+The user approved the pinned preview for this temporary demo on 2026-10-30,
+superseding the earlier release-before-Pages requirement. Stable npm migration
+is deferred. Validate clean installation, public API types, local/remote opening,
+and the production build before deployment.
 
 ### 3. Inspect sources, then generate one generic App spec
 
@@ -128,7 +129,7 @@ Handle rejected embed calls and asynchronous lazy-source errors. A fulfilled emb
 
 Build all runtime assets into dist and deploy it through GitHub Actions. Configure the repository base path, expected initially to be /figwig-viewer/, while keeping it configurable for another repository name or a custom domain. Verify lazy chunks, CSS, fonts, and URL bootstrap under that non-root path. Follow the [Vite GitHub Pages deployment guidance](https://vite.dev/guide/static-deploy.html#github-pages).
 
-Development CI installs the pinned preview dependencies from the committed lockfile, checks types and focused tests, builds, and runs browser smoke tests against the production output. Before enabling deployment, replace the preview with the stable GenomeSpy npm release as specified in milestone 4. Deployment CI then uses an ordinary npm ci from the release-based lockfile. The deployment job depends on those checks and publishes only dist. The workflow can be prepared before a GitHub repository is chosen; enabling Pages and performing the first deployment require both the actual remote destination and completion of the release migration. Do not publish a preview-backed app to Pages.
+CI installs the pinned preview dependencies from the committed lockfile, checks formatting, types and focused tests, builds, and runs Chromium browser tests against the production output. On main, successful verification uploads that same dist as a Pages artifact. A separate deployment job needs verification, uses the github-pages environment, and receives Pages/OIDC write permissions. Branch and PR checks retain read-only permissions. Manual runs are supported; deployment requires main. Configure the repository Pages source as GitHub Actions before the first deployment.
 
 ## Proposed files
 
@@ -157,7 +158,7 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
 
 - Use the App preview at `https://pkg.pr.new/@genome-spy/app@58bd423`, with its
   matching Core preview installed transitively. Use only public App entry points.
-  Keep the stable-release migration and Pages requirements in milestones 4 and 5.
+  Defer stable-release migration in milestone 4; the Pages workflow in milestone 5 uses the approved preview.
 - Launch GenomeSpy App immediately with persistent annotations in a named concat,
   fixed hg38, an explicitly owned zoomable locus scale, and shared x resolution. The native
   toolbar is the sole header. No landing card or separate welcome screen remains.
@@ -383,9 +384,9 @@ Documentation: describe remote sharing/bookmarks and local reselection; record t
 
 Tentative commit: feat: add Figwig actions and source-specific sessions
 
-### Milestone 4: Replace the preview with a stable npm release
+### Milestone 4: Replace the preview with a stable npm release (deferred)
 
-Outcome: the viewer uses a stable GenomeSpy npm release containing the required changes before Pages publication. Local snapshot tooling is already removed; development uses the pinned App preview until the stable release is available.
+Outcome: migrate to a stable GenomeSpy npm release when appropriate. This is deferred and no longer blocks the temporary demo or its Pages publication. Local snapshot tooling is already removed; use the pinned App preview for now.
 
 Affected areas: App dependency URL and lockfile, dependency identity display, any remaining package compatibility configuration, and development documentation.
 
@@ -397,13 +398,13 @@ Tentative commit: build: replace GenomeSpy preview with a stable release
 
 ### Milestone 5: Deliver a verified GitHub Pages build
 
-Outcome: production assets built with the released GenomeSpy packages and a Pages workflow are ready for the selected remote repository, with deployment gated on meaningful checks and completion of milestone 4.
+Outcome: production assets built with the approved GenomeSpy preview are ready for Pages, with deployment gated on the existing checks. The workflow is implemented; Pages configuration and first deployment remain pending.
 
 Affected areas: production base configuration, verification/deployment workflows, browser harness, and README.
 
 Verification: run type checks, focused Vitest behavior tests, production build, and Playwright flows against dist under /figwig-viewer/. Serve remote fixtures from a distinct local origin with explicit range/CORS behavior, so same-origin tests cannot hide cross-origin problems. Check Chromium plus Firefox/WebKit smoke coverage before claiming support for those browsers. Confirm unrelated datasets are not fetched until opened and local signal bytes never leave the browser. Validate that a fresh clone needs neither the GenomeSpy working tree nor its node_modules.
 
-Documentation: complete local development, GitHub Pages configuration, data-server troubleshooting, browser support, and normal dependency-update instructions. Once the release migration is complete, a remote destination exists, and deployment is authorized, verify the first deployed URL as the final integration check.
+Documentation: complete local development, GitHub Pages configuration, data-server troubleshooting, browser support, and normal dependency-update instructions. Once Pages is configured and the implementation reaches main, verify the first deployed URL as the final integration check.
 
 Tentative commit: ci: deploy verified viewer builds to GitHub Pages
 
@@ -417,7 +418,7 @@ Tentative commit: ci: deploy verified viewer builds to GitHub Pages
 - A remote source-plus-state URL reloads under the Pages repository base. A local open never exposes a reusable blob URL.
 - Invalid files, inaccessible URLs, ignored ranges, and initial lazy-load failures produce a visible error and allow another valid open.
 - The production site loads its CSS, icons/fonts where used, and lazy chunks correctly from a clean deployment.
-- Before first deployment, dependency inspection and a clean production build demonstrate that matching published App/Core packages containing the required changes are used. There are no local archive dependencies, preparation tools, or snapshot/preview fallbacks. Any package compatibility configuration still needed is documented.
+- Before first deployment, dependency inspection and a clean production build demonstrate that the pinned App preview and its matching transitive Core dependency are used. There are no local archive dependencies, preparation tools, or snapshot/preview fallbacks. Any package compatibility configuration still needed is documented.
 
 Use behavioral assertions and small numeric fixtures. Do not snapshot the entire generated spec or duplicate upstream renderer/parser tests. Production browser verification must wait for visible data and inspect public loading errors; an empty canvas with no thrown exception is not success.
 
@@ -427,8 +428,8 @@ Use behavioral assertions and small numeric fixtures. Do not snapshot the entire
 - Local and remote App embedding is verified in Chromium. Firefox/WebKit smoke checks remain pending; browser claims follow actual smoke results.
 - Exact-mode overview queries can be expensive. visibleSamples represents sample membership, not vertical viewport culling. Very large track counts need measured follow-up; v1 must not silently truncate samples or promise unlimited scalability. Fast summaries support the default whole-genome view; exact mode remains an explicit, potentially expensive choice.
 - Richer display settings and a side-panel design remain follow-ups. They must preserve the reader's explicit query semantics and the App's public UI boundaries.
-- The required GenomeSpy release must be available and milestone 4 must be complete before the first Pages publication. If release timing changes, continue development and local verification with the pinned preview and keep deployment disabled.
-- The private GitHub repository is genome-spy/figwig-viewer. The expected future Pages base is /figwig-viewer/; public visibility and Pages publication remain later work after milestone 4.
+- Stable npm migration is deferred. The pinned App preview is approved for this temporary demo and its Pages publication.
+- The GitHub repository is genome-spy/figwig-viewer and the Pages base is /figwig-viewer/. Configure GitHub Actions as the Pages source; private-repository availability depends on the organization plan. Visibility changes and merging are separate from preparing this workflow.
 - The viewer is MIT-licensed. Preserve upstream MIT notices and annotation provenance. No third-party application code is copied into the viewer implementation; the established browser-only local/URL model is also used by [IGV-Web](https://igvteam.github.io/igv-webapp/).
 
 An independent subagent review was completed on 2026-10-29. Its two P2 findings have been incorporated: Vite explicitly resolves the packaged production entry and the browser suite covers development; remote probing and inspection share a deadline and caller cancellation, while the UI documents App embedding's cancellation boundary.

@@ -1,6 +1,8 @@
 # Figwig Viewer
 
-A browser-only viewer for local and remote Figwig files, built with GenomeSpy App.
+A temporary hack to demonstrate viewing local and remote Figwig files with
+GenomeSpy App. The app and its configuration are experimental and use a pinned
+GenomeSpy preview release.
 
 The viewer runs entirely in your browser. Local files are never uploaded. Remote
 files are read directly from their server using HTTP byte-range requests.
@@ -105,7 +107,7 @@ for another file.
 
 ## GenomeSpy preview dependency
 
-Development uses the pinned
+This demo uses the pinned
 [GenomeSpy App preview at 58bd423](https://pkg.pr.new/@genome-spy/app@58bd423).
 App declares its matching Core preview dependency, which npm installs transitively;
 the viewer does not depend directly on Core. The lockfile records both preview
@@ -122,10 +124,24 @@ Keep the production export condition in Vite while App's archive omits the
 JavaScript files referenced by its development exports. The File information
 dialog identifies the App dependency used by the viewer.
 
-**Before the first GitHub Pages deployment**, replace the previews with matching
-npm releases containing the required Figwig and dynamic SampleView support, then
-verify a clean installation, type checks, tests, and the production build. There
-is no Pages deployment workflow yet; development CI only verifies the app.
+## GitHub Pages
+
+Use the pinned GenomeSpy preview for this temporary demo's Pages deployment.
+The preview package is resolved at build time and bundled into the static app.
+
+The Vite base path is configured as `/figwig-viewer/`. The
+[workflow](.github/workflows/check.yml) runs formatting, types, unit tests, a
+production build, and Chromium browser tests. After those checks pass on `main`,
+it uploads the tested `dist/` and deploys it using GitHub's Pages actions.
+
+Select **GitHub Actions** under the repository's
+**Settings → Pages → Build and deployment → Source**, then merge into `main`.
+Subsequent pushes to `main` deploy automatically. To redeploy manually, run
+**Verify and deploy viewer** from the Actions tab with `main` selected.
+
+The default Pages URL is <https://genome-spy.github.io/figwig-viewer/>. For a
+private repository, Pages availability depends on the organization's GitHub plan;
+alternatively, make the repository public.
 
 ## License
 
