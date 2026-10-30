@@ -8,11 +8,11 @@ export interface PreparedSource {
     size: number | undefined;
     header: Header;
     tracks: readonly Track[];
-    /** Release a local URL after its embedded viewer has been finalized. */
+    /** Release a local URL after its SampleView has been removed. */
     dispose(): void;
 }
 
-/** Inspect metadata without reading signal chunks or keeping a reader open. */
+/** Inspect the file header without querying raw signal values. */
 export async function inspectFigwigSource(
     input: File | string,
     signal?: AbortSignal,

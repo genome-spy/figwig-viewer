@@ -1,43 +1,36 @@
-import type { embed } from "@genome-spy/app";
+import type { AppPersistenceContext, SampleSpec, embed } from "@genome-spy/app";
 import type { PreparedSource } from "./figwigSource";
 
-export type ViewerSpec = Exclude<Parameters<typeof embed>[1], string>;
+export type AppRootSpec = Exclude<Parameters<typeof embed>[1], string>;
+export type ViewerSpec = SampleSpec;
+export type QueryMode = "fast" | "exact";
+export type InitialLocus = [
+    { chrom: string; pos: number },
+    { chrom: string; pos: number },
+];
 
-/** Generate a sample view from the file's own dictionary and track identities. */
-export async function createViewerSpec(
-    source: PreparedSource,
-): Promise<ViewerSpec> {
-    const firstChromosome = source.header.chromosomes.find(
-        (chromosome) => chromosome.length > 0,
-    );
-    if (!firstChromosome) {
-        throw new Error("This Figwig file contains no non-empty chromosomes.");
-    }
-
-    const spec = {
-        name: "samples",
-        description: [source.name],
-        genomes: {
-            file: {
-                contigs: source.header.chromosomes.map(({ name, length }) => ({
-                    name,
-                    size: length,
-                })),
-            },
-        },
-        assembly: "file",
+/** Keep the application and its hg38 navigation alive between file opens. */
+export function createAppSpec(): AppRootSpec {
+    return {
+        name: "tracks",
+        description: "Figwig Viewer",
+        assembly: "hg38",
         scales: {
-            x: {
-                domain: [
-                    { chrom: firstChromosome.name, pos: 0 },
-                    {
-                        chrom: firstChromosome.name,
-                        // Explicit locus domains include the upper coordinate.
-                        pos: Math.min(firstChromosome.length, 1_000_000) - 1,
-                    },
-                ],
-            },
+            x: { name: "locus", type: "locus", zoom: true },
         },
+        resolve: { scale: { x: "shared" } },
+        vconcat: [],
+    };
+}
+
+/** Create only the file-owned cohort, metadata, and signal subtree. */
+export function createViewerSpec(
+    source: PreparedSource,
+    mode: QueryMode,
+): ViewerSpec {
+    return {
+        name: "samples",
+        description: source.name,
         samples: {
             identity: { metadataSource: "figwig" },
             labelTitle: "Sample",
@@ -71,7 +64,7 @@ export async function createViewerSpec(
                 lazy: {
                     type: "figwig",
                     url: source.url,
-                    mode: "exact",
+                    mode,
                     tracks: { expr: "visibleSamples" },
                 },
             },
@@ -83,7 +76,7 @@ export async function createViewerSpec(
                 y: {
                     field: "score",
                     type: "quantitative",
-                    scale: { zero: true },
+                    scale: { zero: true, domain: { source: "viewport" } },
                     axis: { title: "Signal" },
                 },
                 y2: { datum: 0 },
@@ -93,18 +86,43 @@ export async function createViewerSpec(
                 ],
             },
         },
-    } satisfies ViewerSpec;
+    };
+}
 
-    if (source.kind === "remote") {
-        const digest = await crypto.subtle.digest(
-            "SHA-256",
-            new TextEncoder().encode("figwig-viewer-spec-v1\n" + source.url),
-        );
-        const id = Array.from(new Uint8Array(digest), (byte) =>
-            byte.toString(16).padStart(2, "0"),
-        ).join("");
-        return { ...spec, specId: "figwig-viewer:" + id };
-    } else {
-        return spec;
+/** Establish a bounded first view without changing the fixed assembly. */
+export function getInitialLocus(source: PreparedSource): InitialLocus {
+    const chromosome = source.header.chromosomes.find(
+        ({ length }) => length > 0,
+    );
+    if (!chromosome) {
+        throw new Error("This Figwig file contains no non-empty chromosomes.");
     }
+
+    return [
+        { chrom: chromosome.name, pos: 0 },
+        {
+            chrom: chromosome.name,
+            // Explicit locus domains include the upper coordinate.
+            pos: Math.min(chromosome.length, 1_000_000) - 1,
+        },
+    ];
+}
+
+/** Bind remote bookmarks to the exact source, assembly, query mode, and format. */
+export async function createPersistenceContext(
+    source: PreparedSource,
+    mode: QueryMode,
+): Promise<AppPersistenceContext | null> {
+    if (source.kind === "local") return null;
+
+    const digest = await crypto.subtle.digest(
+        "SHA-256",
+        new TextEncoder().encode(
+            `figwig-viewer-spec-v3\nhg38\n${mode}\n${source.url}`,
+        ),
+    );
+    const id = Array.from(new Uint8Array(digest), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+    ).join("");
+    return { specId: "figwig-viewer:" + id };
 }

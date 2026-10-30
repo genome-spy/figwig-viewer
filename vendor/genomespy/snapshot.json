@@ -1,6 +1,6 @@
 {
   "repository": "https://github.com/genome-spy/genome-spy.git",
-  "commit": "d983873abaa5e21b8b7eb35e55221a6e9a19f3da",
+  "commit": "e8aeae207a71a869725393987dc32fe73db98e18",
   "purpose": "Development-only snapshot; remove before first GitHub Pages publication.",
   "toolchain": {
     "node": "v26.8.1",
@@ -15,14 +15,14 @@
     {
       "name": "@genome-spy/core",
       "version": "1.2.0",
-      "filename": "genome-spy-core-1.2.0-d983873abaa5.tgz",
-      "sha256": "3d6a611a4f2d00393980fa0c47684664eac38f88e2e2b1d3676f927ae5da18a6"
+      "filename": "genome-spy-core-1.2.0-e8aeae207a71.tgz",
+      "sha256": "2c53ed5d845a9c11c38b61debb1c52a6ad89fb12734a69c9ced0ca09849f41e2"
     },
     {
       "name": "@genome-spy/app",
       "version": "1.2.0",
-      "filename": "genome-spy-app-1.2.0-d983873abaa5.tgz",
-      "sha256": "057bf4a525e11c3865293fc607925b2f63010dda27830d57f52419e821999115"
+      "filename": "genome-spy-app-1.2.0-e8aeae207a71.tgz",
+      "sha256": "be3dc43fed9e3723e87a2f967c2c98ad7e75732218a69f1db2b329612f13c6ec"
     }
   ]
 }

@@ -9,12 +9,12 @@
   },
   "files": {
     "replacement.fw": {
-      "bytes": 1475,
-      "sha256": "802db2fe23eadf05fa4fb0b5fae94b2014e03448351064443a4c625a1df2dae3"
+      "bytes": 2370,
+      "sha256": "c8c28acfb0d7c499906f156def771eb9436e4856699feb841aa2a51b0e29bf5a"
     },
     "signed.fw": {
-      "bytes": 2395,
-      "sha256": "332856c9f0430a3dc2719d8bb1f2dd7abb4080c1a1674f9809ca9b9e548cc9ae"
+      "bytes": 2370,
+      "sha256": "153345bb8a68ed7b41f58029c3bcbbfe43908a510a5e058025489ec6dc272d99"
     }
   }
 }

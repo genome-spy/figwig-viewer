@@ -26,8 +26,8 @@ describe("Figwig source inspection", () => {
         expect(
             source.header.chromosomes.map(({ name, length }) => [name, length]),
         ).toEqual([
-            ["contigA", 256],
-            ["contigB", 128],
+            ["chr1", 248_956_422],
+            ["chr2", 242_193_529],
         ]);
         expect(source.tracks.map((track) => track.name)).toEqual([
             "sample-a",

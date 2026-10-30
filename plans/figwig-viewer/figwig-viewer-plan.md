@@ -147,6 +147,110 @@ Development CI initially installs from the committed lockfile and local snapshot
 
 Keep modules proportional to the implementation. Combine files when the split adds indirection without separating a real responsibility.
 
+## Native App migration (2026-10-30)
+
+This amendment supersedes the original opening-screen, file-derived assembly,
+per-file embed, and generated root-spec decisions below. The original milestone
+record remains useful history. The user has deferred GenomeSpy #629 and selected
+hg38 for now. GenomeSpy #628 has shipped to master in #631.
+
+### Architecture and current decisions
+
+- Pin development packages to master commit
+  `e8aeae207a71a869725393987dc32fe73db98e18`, exported from committed bytes.
+  This includes the App lifecycle and the updated Figwig reader. Use only public
+  App/Core entry points. Keep the release migration and no-Pages-with-snapshots
+  requirements in milestones 4 and 5.
+- Launch GenomeSpy App immediately with an empty named concat, fixed hg38,
+  an explicitly owned zoomable locus scale, and shared x resolution. The native
+  toolbar is the sole header. No landing card or separate welcome screen remains.
+- Open and File information are persistent public plugin actions. Opening uses
+  a BaseDialog subclass and native component styling. Drag/drop remains supported.
+  Keep progress/error feedback in that dialog, with cancellation during inspection.
+- Generate a SampleSpec containing the metadata identity, metadata backend, and
+  signal track. Opening a replacement first inspects it, awaits old SampleView
+  removal, releases its source, updates persistence context, then inserts the new
+  SampleSpec. Rely on App for cohort/history cleanup and reader disposal.
+- Use hg38 as supplied by the host. Do not infer or compare assemblies or implement
+  #629. Test fixtures use canonical hg38 names/lengths with short sparse writes.
+  Opening begins at a bounded interval of a file chromosome, within hg38. Preserve
+  the existing locus when replacing an established cohort in the same App.
+- Keep exact means as the default. Fast mode remains an explicit choice. Remove
+  the earlier uncommitted fast-default and summary-availability experiment from
+  the migration; the reported slowdown was browser-specific and not reproduced
+  in a separate browser. Retain unrelated inspection cancellation/range checks.
+- `setPersistenceContext` controls bookmark identity but not embedMode or URL hash
+  ownership. Keep App alive for same-kind replacements. Recreate only on a local
+  versus remote mode change, retaining the native interface throughout. This
+  documented exception preserves existing local sharing/URL guarantees without
+  private APIs, hidden controls, or upstream changes.
+- For initial remote URL bootstrap, save/remove the incoming hash before empty
+  App launch. Set source query/context and insert the cohort before restoring the
+  saved hash through the native hashchange path. Local opens use embedded mode and
+  no source context. Remote identity hashes the full normalized URL and the new
+  hg38 spec version (and aggregation mode). Keep blob URLs out of source locators.
+- File information reads current controller state; no per-source toolbar action
+  accumulation. Source replacement remains serialized. A failed inspection keeps
+  the current cohort; a failed insertion leaves an empty App ready for another
+  open. No rollback or concurrent replacement framework is added.
+
+### Milestone: native App startup and dynamic hg38 cohorts
+
+Outcome: the viewer uses GenomeSpy's interface from startup, with local and URL
+opening through one native dialog, public subtree replacement, and unchanged
+source-specific persistence guarantees. Existing snapshot preparation is refreshed
+only for development; publication remains blocked on released packages.
+
+Affected areas: snapshot manifest/archives and dependencies; main/controller/spec
+and plugin modules; native open dialog and minimal layout CSS; fixture generator,
+fixtures, unit/browser tests; README and this plan. No upstream GenomeSpy edits.
+
+Verification and acceptance:
+
+- App toolbar/canvas exist before opening. The native Open dialog is keyboard
+  usable, closes/reopens, and shows cancellable inspection and clear errors.
+- Original signed hg38 fixtures render matching local/range-HTTP signal, preserving
+  zeros and negative values. Initial and restored loci render visible data.
+- Same-kind source replacement preserves shell/canvas identity and the locus,
+  resets imported metadata/filtering/history, and creates no duplicate actions.
+- Local/remote transitions select the supported embed mode, isolate source state,
+  preserve remote URL/hash reload and disable local source sharing.
+- Range/CORS failure, cancelled stalled inspection, invalid input, and failed
+  insertion leave the interface usable for a subsequent valid open. Revoke each
+  blob URL only after public removal or failed-insertion cleanup finishes.
+- Formatting, TypeScript, focused Vitest tests, production build and Chromium flows
+  pass. Inspect the actual opening dialog and rendered viewer visually. Do not
+  re-upload the previously denied large local file through the integrated browser.
+- README describes fixed hg38, native dialogs, mode-change exception, exact default,
+  snapshot identity and release-before-Pages condition.
+
+Tentative commit: `feat: open hg38 cohorts in the native GenomeSpy interface`.
+
+Implementation completed: the viewer now starts in the native App, uses a public
+BaseDialog for local/URL opening, replaces same-kind SampleViews, and uses fixed
+hg38 with viewport signal autoscaling. Exact remains the default; exploratory
+summary preflight/default changes were discarded. The master snapshot and
+Figwig 0.2.3 are installed with matching deduped App/Core packages.
+
+Verification passed: TypeScript, 11 focused unit tests, production build, and all
+six revised Chromium flows. Browser assertions cover actual remote metadata/filter
+and locus replay, same-kind shell/canvas identity and cohort/history reset, signed
+local/remote SVG equivalence, aggregation choice, cancellation/errors, and native
+metadata/undo. Visual inspection confirmed the native dialog theme and signed
+viewport axes. Independent implementation review found a Lit reactive-field issue;
+it was fixed with a declared property and constructor assignment. No outstanding
+material findings remain. Native App stays alive for same-kind replacements;
+local/remote transitions use the documented embed-mode recreation boundary.
+
+Release migration and Pages deployment remain pending; no upstream source changes
+or deployment were made. Retain this plan while the PR is draft.
+
+Independent plan review completed before implementation with no material findings.
+Verify cancellation through native dialog Escape handling and actual locus/sample
+state after deferred hash restoration, not only loading readiness. Reconcile the
+amendment after verification. The original release
+migration and deployment milestones remain pending.
+
 ## Implementation record (2026-10-29)
 
 - Milestone 1 completed: clean pinned-source production build and real npm packing; checksummed App/Core archives; deduped matching dependency resolution; clean standalone npm ci, public TypeScript imports, and Vite development-entry smoke verification.

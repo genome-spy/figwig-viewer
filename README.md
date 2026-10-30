@@ -42,20 +42,33 @@ different repository path or custom domain.
 
 ## Opening data
 
-Choose a local file, drop one onto the page, or enter a complete HTTPS file URL.
-File extensions are not used to determine validity. A local file uses browser
-random access and requires reselection after a page reload. Use the toolbar's
-Open action to switch files; File information shows chromosome and track counts,
-available metadata fields, and the GenomeSpy dependency identity.
+GenomeSpy App is visible from startup. Its Open action opens a native dialog for
+choosing a local file or entering a complete HTTPS URL. You can also drop one file
+anywhere in the viewer. File information shows the current source, track count,
+metadata fields, and dependency identity. Local files stay in your browser and
+require reselection after reloading.
 
-Chromosome names and lengths come from the file. Tracks become samples with their
-stored names. Use the App's metadata import controls to choose attributes; the
-viewer does not import every column automatically. Initial queries use exact
-means over the first megabase of the first non-empty chromosome, preserving
-negative and zero values. A sparse file can initially show no signal: navigate to
-the desired locus using the GenomeSpy search field.
+The viewer currently assumes **hg38**. Files must use coordinates compatible with
+that assembly. Assembly discovery, compatibility inference, and switching are
+separate work tracked in [GenomeSpy #629](https://github.com/genome-spy/genome-spy/issues/629).
 
-Remote sources need to return HTTP 206 for byte ranges, allow the viewer's origin
+Tracks become samples using their stored names. Use View settings → Settings for
+Sample metadata → Import metadata from figwig source to choose metadata columns.
+The viewer does not import all columns automatically. Signal queries default to
+exact means, preserving negative and zero values while omitting NaNs. The signal
+y-axis autoscales to the current viewport. Fast browsing
+is an explicit dialog option; coarse summary means are approximate and count
+missing values as zero. A file without suitable summaries may fail at coarse zooms
+in fast mode.
+
+The first file starts at a bounded interval of its first non-empty chromosome.
+Navigate using GenomeSpy's locus/search field. Replacing a file with another of the
+same source kind keeps the App, canvas, and current locus, and replaces only the
+SampleView. Imported metadata, sample operations, selections, and undo history reset
+for the new cohort. Independent annotation siblings can be retained by this
+lifecycle; the viewer does not currently add annotation tracks.
+
+Remote sources must return HTTP 206 for byte ranges, allow the viewer's origin
 through Access-Control-Allow-Origin, and expose Content-Range through
 Access-Control-Expose-Headers. A server that ignores Range is rejected before its
 body is consumed. HTTP URLs are accepted only for localhost development. URLs
@@ -64,13 +77,16 @@ requiring custom authorization headers are not supported.
 Remote sessions retain the source in the url query parameter and let GenomeSpy
 own the hash for view state. The native Share action includes both. Signed URLs
 retain their tokens and access requirements and can expire. Local sessions keep
-sample operations and undo/redo but disable source-sharing and persisted
-bookmarks. Switching files clears the previous source's URL state.
+sample operations and undo/redo but disable source sharing and persisted bookmarks.
+Switching files clears the previous source's state. App's embed mode is fixed at
+construction, so switching between local and remote sources recreates the native
+App; repeated opens of the same kind use dynamic SampleView replacement.
 
-File inspection can be cancelled and has a 30-second deadline. GenomeSpy's embed
-launch does not expose cancellation; the loading screen offers Reload page if
-that stage stalls. Once embedding returns, initial visible signal loading also
-has a 30-second deadline.
+File inspection can be cancelled and has a 30-second deadline. During insertion,
+the native dialog shows progress and offers Reload page if loading stalls. After
+insertion, initial visible signal loading also has a 30-second deadline. Inspection
+errors keep the previous file open; insertion failures leave an empty App ready
+for another file.
 
 ## Temporary GenomeSpy snapshot
 
@@ -94,7 +110,7 @@ in a disposable directory. Do not edit or republish these archives. Snapshot
 changes require updating the manifest, dependency paths, lockfile, and checks.
 
 **Before the first GitHub Pages deployment**, switch App and Core to a matching
-npm release containing the required Figwig support. Remove the vendor snapshot,
+npm release containing the required Figwig and dynamic SampleView support. Remove the vendor snapshot,
 preparation script, snapshot-only configuration and documentation, then rerun
 clean installation, type checks, tests, and the production build. There is no
 Pages deployment workflow yet; development CI only verifies the app.

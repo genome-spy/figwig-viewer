@@ -1,17 +1,19 @@
 import { html, showMessageDialog, type AppPlugin } from "@genome-spy/app";
 import { faFolderOpen, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import type { PreparedSource } from "./figwigSource";
+import type { QueryMode } from "./createViewerSpec";
 import snapshot from "../vendor/genomespy/snapshot.json";
 
-/** Add file actions through App's public UI contract. */
+interface FileContext {
+    readonly source: PreparedSource | undefined;
+    readonly mode: QueryMode;
+}
+
+/** Install native actions once; their content follows the current cohort. */
 export function createFigwigPlugin(
-    source: PreparedSource,
+    context: FileContext,
     requestOpen: () => void,
 ): AppPlugin {
-    const fields = Array.from(
-        new Set(source.tracks.flatMap((track) => Object.keys(track.metadata))),
-    ).filter((field) => !["name", "dtype", "group", "sample"].includes(field));
-
     return {
         name: "figwig-viewer",
         install({ ui }) {
@@ -24,6 +26,26 @@ export function createFigwigPlugin(
                 title: "File information",
                 icon: faCircleInfo,
                 onClick: async () => {
+                    const source = context.source;
+                    if (!source) {
+                        await showMessageDialog(
+                            "Open a Figwig file or URL to view signals and sample metadata. The viewer currently assumes hg38.",
+                            { title: "Figwig Viewer" },
+                        );
+                        return;
+                    }
+                    const fields = Array.from(
+                        new Set(
+                            source.tracks.flatMap((track) =>
+                                Object.keys(track.metadata),
+                            ),
+                        ),
+                    ).filter(
+                        (field) =>
+                            !["name", "dtype", "group", "sample"].includes(
+                                field,
+                            ),
+                    );
                     await showMessageDialog(
                         html`<dl>
                                 <dt>File</dt>
@@ -32,16 +54,16 @@ export function createFigwigPlugin(
                                 <dd>
                                     ${source.size === undefined ? "Unknown" : source.size.toLocaleString() + " bytes"}
                                 </dd>
-                                <dt>Genome label</dt>
-                                <dd>
-                                    ${source.header.genome ?? "Not specified"}
-                                </dd>
-                                <dt>Chromosomes</dt>
+                                <dt>Assembly</dt>
+                                <dd>hg38</dd>
+                                <dt>Chromosomes in file</dt>
                                 <dd>${source.header.chromosomes.length}</dd>
                                 <dt>Tracks</dt>
                                 <dd>${source.tracks.length}</dd>
-                                <dt>Query mode</dt>
-                                <dd>Exact</dd>
+                                <dt>Signal aggregation</dt>
+                                <dd>
+                                    ${context.mode === "fast" ? "Fast browsing" : "Exact means"}
+                                </dd>
                                 <dt>Metadata fields</dt>
                                 <dd>
                                     ${fields.length ? fields.join(", ") : "None"}
@@ -49,12 +71,12 @@ export function createFigwigPlugin(
                                 <dt>GenomeSpy snapshot</dt>
                                 <dd>${snapshot.commit.slice(0, 12)}</dd>
                             </dl>
+                            <p>Use View settings to import metadata columns.</p>
                             ${
                                 source.kind === "local"
                                     ? html`<p>
-                                          This file stays in your browser.
-                                          Choose it again after reloading the
-                                          page.
+                                          Local files stay in your browser.
+                                          Choose the file again after reloading.
                                       </p>`
                                     : html`<p>
                                           Shared links retain this source URL
@@ -65,7 +87,6 @@ export function createFigwigPlugin(
                     );
                 },
             });
-
             return () => {
                 removeInfo();
                 removeOpen();

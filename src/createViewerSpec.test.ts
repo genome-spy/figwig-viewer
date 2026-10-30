@@ -1,6 +1,11 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { createViewerSpec } from "./createViewerSpec";
+import {
+    createAppSpec,
+    createPersistenceContext,
+    createViewerSpec,
+    getInitialLocus,
+} from "./createViewerSpec";
 import { inspectFigwigSource } from "./figwigSource";
 
 async function fixtureSource() {
@@ -11,28 +16,24 @@ async function fixtureSource() {
 }
 
 describe("viewer specification", () => {
-    it("uses the file dictionary and metadata identity for signed signal", async () => {
+    it("starts an empty application with persistent hg38 navigation", () => {
+        const spec = createAppSpec();
+        expect(spec).toMatchObject({
+            name: "tracks",
+            description: "Figwig Viewer",
+            assembly: "hg38",
+            scales: { x: { name: "locus", type: "locus", zoom: true } },
+            resolve: { scale: { x: "shared" } },
+            vconcat: [],
+        });
+        expect(spec).not.toHaveProperty("specId");
+    });
+
+    it("keeps file identity, metadata, and signed signal in the replaceable cohort", async () => {
         const source = await fixtureSource();
         try {
-            const spec = await createViewerSpec(source);
+            const spec = createViewerSpec(source, "exact");
             expect(spec).toMatchObject({
-                assembly: "file",
-                genomes: {
-                    file: {
-                        contigs: [
-                            { name: "contigA", size: 256 },
-                            { name: "contigB", size: 128 },
-                        ],
-                    },
-                },
-                scales: {
-                    x: {
-                        domain: [
-                            { chrom: "contigA", pos: 0 },
-                            { chrom: "contigA", pos: 255 },
-                        ],
-                    },
-                },
                 samples: { identity: { metadataSource: "figwig" } },
                 metadata: {
                     sources: [
@@ -58,17 +59,29 @@ describe("viewer specification", () => {
                     },
                 },
             });
-            expect(spec).not.toHaveProperty("specId");
-            // No recipe-specific transform may discard negative values.
+            // Assembly, navigation, and persistence belong to the surviving App.
+            for (const property of [
+                "assembly",
+                "genomes",
+                "scales",
+                "specId",
+            ]) {
+                expect(spec).not.toHaveProperty(property);
+            }
             expect(spec).not.toHaveProperty("spec.transform");
+            expect(createViewerSpec(source, "fast")).toHaveProperty(
+                "spec.data.lazy.mode",
+                "fast",
+            );
         } finally {
             source.dispose();
         }
     });
 
-    it("namespaces remote bookmarks by the complete source URL", async () => {
+    it("namespaces remote persistence by complete URL and query mode while keeping local data transient", async () => {
         const source = await fixtureSource();
         try {
+            expect(await createPersistenceContext(source, "exact")).toBeNull();
             const first = {
                 ...source,
                 kind: "remote" as const,
@@ -78,14 +91,43 @@ describe("viewer specification", () => {
                 ...first,
                 url: "https://example.org/signals.fw?version=two",
             };
-            const firstSpec = await createViewerSpec(first);
-            expect(firstSpec.specId).toMatch(/^figwig-viewer:[a-f0-9]{64}$/);
-            expect(firstSpec.specId).toBe(
-                (await createViewerSpec(first)).specId,
+            const context = await createPersistenceContext(first, "exact");
+            expect(context?.specId).toMatch(/^figwig-viewer:[a-f0-9]{64}$/);
+            expect(context).toEqual(
+                await createPersistenceContext(first, "exact"),
             );
-            expect(firstSpec.specId).not.toBe(
-                (await createViewerSpec(second)).specId,
+            expect(context).not.toEqual(
+                await createPersistenceContext(second, "exact"),
             );
+            expect(context).not.toEqual(
+                await createPersistenceContext(first, "fast"),
+            );
+        } finally {
+            source.dispose();
+        }
+    });
+
+    it("bounds initial navigation and skips empty chromosomes", async () => {
+        const source = await fixtureSource();
+        try {
+            expect(getInitialLocus(source)).toEqual([
+                { chrom: "chr1", pos: 0 },
+                { chrom: "chr1", pos: 999_999 },
+            ]);
+            const shortSource = {
+                ...source,
+                header: {
+                    ...source.header,
+                    chromosomes: [
+                        { ...source.header.chromosomes[0], length: 0 },
+                        { ...source.header.chromosomes[1], length: 256 },
+                    ],
+                },
+            };
+            expect(getInitialLocus(shortSource)).toEqual([
+                { chrom: "chr2", pos: 0 },
+                { chrom: "chr2", pos: 255 },
+            ]);
         } finally {
             source.dispose();
         }

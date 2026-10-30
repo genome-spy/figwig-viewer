@@ -20,6 +20,7 @@ import figwig
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1] / "tests" / "fixtures"
+HG38_CHROMOSOMES = {"chr1": 248_956_422, "chr2": 242_193_529}
 
 
 def write_fixture(name: str, chromosomes: dict[str, int], replacement: bool = False) -> None:
@@ -31,8 +32,8 @@ def write_fixture(name: str, chromosomes: dict[str, int], replacement: bool = Fa
         ROOT / name,
         chromosomes,
         tracks,
-        genome="viewer-test",
-        tile=64,
+        genome="hg38",
+        tile=16_384,
         groups=2,
         level=0,
         order="tracks",
@@ -40,7 +41,8 @@ def write_fixture(name: str, chromosomes: dict[str, int], replacement: bool = Fa
         n_jobs=1,
     ) as writer:
         for chromosome, length in chromosomes.items():
-            values = np.zeros((1, 2, length), dtype=np.float32)
+            # A short write keeps fixtures sparse despite canonical chromosome lengths.
+            values = np.zeros((1, 2, min(length, 256)), dtype=np.float32)
             values[0, 0, 8:32] = -4
             values[0, 0, 32:64] = 8
             values[0, 0, 64:80] = np.nan
@@ -53,8 +55,8 @@ def write_fixture(name: str, chromosomes: dict[str, int], replacement: bool = Fa
 
 def main() -> None:
     ROOT.mkdir(parents=True, exist_ok=True)
-    write_fixture("signed.fw", {"contigA": 256, "contigB": 128})
-    write_fixture("replacement.fw", {"replacement": 512}, replacement=True)
+    write_fixture("signed.fw", HG38_CHROMOSOMES)
+    write_fixture("replacement.fw", HG38_CHROMOSOMES, replacement=True)
     manifest = {
         "writer": {
             "repository": "https://github.com/jmschrei/figwig",

@@ -5,11 +5,18 @@ import { fileURLToPath } from "node:url";
 const fixture = (name: string) =>
     fileURLToPath(new URL("./fixtures/" + name, import.meta.url));
 const fixtureOrigin = "http://127.0.0.1:4174";
+const pageErrors = new WeakMap<Page, string[]>();
+
+test.beforeEach(({ page }) => {
+    const errors: string[] = [];
+    pageErrors.set(page, errors);
+    page.on("pageerror", (error) => errors.push(error.message));
+});
+test.afterEach(({ page }) => expect(pageErrors.get(page)).toEqual([]));
 
 async function expectOpened(page: Page, name: string): Promise<void> {
-    await expect(
-        page.getByRole("status").filter({ hasText: "Opened " + name }),
-    ).toBeVisible();
+    await expect(page).toHaveTitle(name + " · Figwig Viewer");
+    await expect(page.locator("figwig-open-dialog")).toBeHidden();
     await expect(
         page.getByRole("button", { name: "File information", exact: true }),
     ).toBeVisible();
@@ -17,9 +24,20 @@ async function expectOpened(page: Page, name: string): Promise<void> {
 
 async function openLocal(page: Page, name = "signed.fw"): Promise<void> {
     await page
-        .getByLabel("Open file", { exact: true })
+        .getByLabel("Local file", { exact: true })
         .setInputFiles(fixture(name));
     await expectOpened(page, name);
+}
+
+async function navigate(page: Page, locus = "chr1:1-256"): Promise<void> {
+    const search = page.locator("genome-spy-search-field input");
+    await search.click();
+    await expect(
+        page.locator("genome-spy-search-field .search-help"),
+    ).toBeVisible();
+    await search.fill(locus);
+    await search.press("Enter");
+    await expect(search).toHaveValue(locus);
 }
 
 async function exportSvg(page: Page): Promise<string> {
@@ -35,8 +53,7 @@ async function exportSvg(page: Page): Promise<string> {
         .uncheck();
     const pending = page.waitForEvent("download");
     await dialog.getByRole("button", { name: "Save SVG", exact: true }).click();
-    const download = await pending;
-    const path = await download.path();
+    const path = await (await pending).path();
     expect(path).not.toBeNull();
     return readFile(path!, "utf8");
 }
@@ -66,33 +83,91 @@ async function inspectSvg(page: Page, svg: string) {
     }, svg);
 }
 
-test("development server resolves the packaged App entry and opens a local file", async ({
+/** Navigation first changes the viewport, then publishes finer lazy bins. */
+async function inspectBaseResolution(page: Page) {
+    let result: Awaited<ReturnType<typeof inspectSvg>> | undefined;
+    await expect
+        .poll(async () => {
+            result = await inspectSvg(page, await exportSvg(page));
+            return result.heights.length;
+        })
+        .toBeGreaterThanOrEqual(4);
+    return result!;
+}
+
+async function importTissue(page: Page): Promise<void> {
+    await page
+        .getByRole("button", { name: "View settings", exact: true })
+        .click();
+    await page
+        .getByRole("button", {
+            name: "Settings for Sample metadata",
+            exact: true,
+        })
+        .click();
+    await page
+        .getByRole("button", { name: /Import metadata from .* source/ })
+        .click();
+    const dialog = page
+        .getByRole("dialog")
+        .filter({ hasText: /Import metadata from\s+figwig\s+source/ });
+    await dialog.getByRole("combobox").fill("tissue");
+    await dialog.getByRole("option", { name: "tissue", exact: true }).click();
+    await dialog.getByRole("button", { name: "Import", exact: true }).click();
+    await expect(dialog).toBeHidden();
+}
+
+async function retainTissue(page: Page, tissue: string): Promise<void> {
+    const search = page.locator("genome-spy-search-field input");
+    await search.click();
+    await expect(
+        page.locator("genome-spy-search-field .search-help"),
+    ).toBeVisible();
+    await search.fill(tissue);
+    await search.press("Enter");
+}
+
+test("startup uses the native App and Open dialog, including the aggregation choice", async ({
     page,
 }) => {
-    const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("http://127.0.0.1:5173/figwig-viewer/");
+    await expect(page.locator(".genome-spy-app")).toHaveCount(1);
+    await expect(page.locator(".genome-spy-container canvas")).toHaveCount(1);
+    await page.keyboard.press("Escape");
+    await expect(page.locator("figwig-open-dialog")).toBeHidden();
+    await page.getByRole("button", { name: "Open", exact: true }).click();
+    await expect(page.getByLabel("Signal aggregation")).toHaveValue("exact");
+    await page.getByLabel("Signal aggregation").selectOption("fast");
     await openLocal(page);
     await expect(
         page.getByRole("button", { name: "Share", exact: true }),
     ).toHaveCount(0);
     expect(new URL(page.url()).search).toBe("");
     expect(new URL(page.url()).hash).toBe("");
-    expect(errors).toEqual([]);
+
+    await page
+        .getByRole("button", { name: "File information", exact: true })
+        .click();
+    const information = page
+        .getByRole("dialog")
+        .filter({ hasText: "File information" });
+    await expect(information).toContainText("Fast browsing");
+    await expect(information).toContainText("hg38");
+    await information
+        .getByRole("button", { name: "Close", exact: true })
+        .click();
 });
 
-test("local and cross-origin sources render the same signed custom-genome signal", async ({
+test("local and cross-origin sources render the same signed hg38 signal", async ({
     page,
 }) => {
-    const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("./");
     await openLocal(page);
-    const local = await inspectSvg(page, await exportSvg(page));
+    await navigate(page);
+    const local = await inspectBaseResolution(page);
     expect(local.labels).toContain("sample-a");
     expect(local.labels).toContain("sample-b");
-    expect(local.labels.join(" ")).toContain("contigA");
-    // Distinct negative and positive magnitudes must survive into exported bars.
+    // Both negative and positive fixture magnitudes must survive into visible bars.
     expect(local.heights.length).toBeGreaterThanOrEqual(4);
     expect(local.barCount).toBeGreaterThan(0);
 
@@ -102,7 +177,8 @@ test("local and cross-origin sources render the same signed custom-genome signal
         .fill(fixtureOrigin + "/signed.fw");
     await page.getByRole("button", { name: "Open URL", exact: true }).click();
     await expectOpened(page, "signed.fw");
-    const remote = await inspectSvg(page, await exportSvg(page));
+    await navigate(page);
+    const remote = await inspectBaseResolution(page);
     expect(remote.heights).toEqual(local.heights);
     expect(remote.barCount).toBe(local.barCount);
     await expect(
@@ -111,29 +187,55 @@ test("local and cross-origin sources render the same signed custom-genome signal
     expect(new URL(page.url()).searchParams.get("url")).toBe(
         fixtureOrigin + "/signed.fw",
     );
-    expect(errors).toEqual([]);
 });
 
-test("remote view state reloads while switching to a local drop clears the source and state", async ({
+test("remote links replay the actual filtered rows and locus, then local opening clears remote state", async ({
     page,
 }) => {
     await page.goto(
         "./?url=" + encodeURIComponent(fixtureOrigin + "/signed.fw"),
     );
     await expectOpened(page, "signed.fw");
-    const canvas = page.locator(".genome-spy-container canvas");
-    const box = await canvas.boundingBox();
-    expect(box).not.toBeNull();
-    await page.mouse.move(
-        box!.x + box!.width * 0.6,
-        box!.y + box!.height * 0.5,
+    await navigate(page);
+    await importTissue(page);
+    await retainTissue(page, "heart");
+    const filtered = await inspectSvg(page, await exportSvg(page));
+    expect(filtered.labels).toContain("sample-a");
+    expect(filtered.labels).not.toContain("sample-b");
+    const locus = await page
+        .locator("genome-spy-search-field input")
+        .inputValue();
+    // The URL update is debounced; a nonempty hash may still describe initial state.
+    await page.getByRole("button", { name: "Share", exact: true }).click();
+    await page
+        .getByRole("button", { name: "Make a link", exact: true })
+        .click();
+    const share = page.locator("gs-share-bookmark-dialog");
+    const sharedURL = await share
+        .getByLabel("Here's a link for you:", { exact: true })
+        .inputValue();
+    const bookmark = JSON.parse(
+        await share.locator("#bookmark-json").inputValue(),
     );
-    await page.mouse.wheel(0, -600);
-    await expect.poll(() => new URL(page.url()).hash).not.toBe("");
-    const hash = new URL(page.url()).hash;
+    expect(bookmark.scaleDomains.locus).toEqual([
+        { chrom: "chr1", pos: 0 },
+        { chrom: "chr1", pos: 255 },
+    ]);
+    expect(bookmark.actions.length).toBeGreaterThan(0);
+    await expect
+        .poll(() => new URL(page.url()).hash)
+        .toBe(new URL(sharedURL).hash);
+    await share.getByRole("button", { name: "Close", exact: true }).click();
     await page.reload();
     await expectOpened(page, "signed.fw");
-    expect(new URL(page.url()).hash).toBe(hash);
+    await expect(page.locator("genome-spy-search-field input")).toHaveValue(
+        locus,
+    );
+    const replayed = await inspectSvg(page, await exportSvg(page));
+    expect(replayed.labels).toContain("tissue");
+    expect(replayed.labels).toContain("sample-a");
+    expect(replayed.labels).not.toContain("sample-b");
+    expect(replayed.barCount).toBe(filtered.barCount);
 
     const bytes = Array.from(await readFile(fixture("replacement.fw")));
     await page.evaluate((values) => {
@@ -158,12 +260,55 @@ test("remote view state reloads while switching to a local drop clears the sourc
     await expect(
         page.getByRole("button", { name: "Open", exact: true }),
     ).toHaveCount(1);
-    const output = await inspectSvg(page, await exportSvg(page));
-    expect(output.labels.join(" ")).toContain("replacement");
-    expect(output.labels.join(" ")).not.toContain("contigA");
+    await navigate(page);
+    const replacement = await inspectSvg(page, await exportSvg(page));
+    expect(replacement.labels).toContain("sample-a");
+    expect(replacement.labels).toContain("sample-b");
+    expect(replacement.labels).not.toContain("tissue");
 });
 
-test("rejected ranges and cancelled header inspection leave opening usable", async ({
+test("same-kind replacement preserves the App, canvas, and locus but resets the cohort", async ({
+    page,
+}) => {
+    await page.goto("./");
+    await openLocal(page);
+    await navigate(page);
+    await importTissue(page);
+    await retainTissue(page, "heart");
+    const filtered = await inspectSvg(page, await exportSvg(page));
+    expect(filtered.labels).not.toContain("sample-b");
+    const shell = await page.locator(".genome-spy-app").elementHandle();
+    const canvas = await page
+        .locator(".genome-spy-container canvas")
+        .elementHandle();
+    const locus = await page
+        .locator("genome-spy-search-field input")
+        .inputValue();
+
+    await page.getByRole("button", { name: "Open", exact: true }).click();
+    await openLocal(page, "replacement.fw");
+    expect(await shell!.evaluate((element) => element.isConnected)).toBe(true);
+    expect(await canvas!.evaluate((element) => element.isConnected)).toBe(true);
+    await expect(page.locator(".genome-spy-app")).toHaveCount(1);
+    await expect(page.locator(".genome-spy-container canvas")).toHaveCount(1);
+    await expect(page.locator("genome-spy-search-field input")).toHaveValue(
+        locus,
+    );
+    await expect(page.getByRole("button", { name: /^Undo/ })).toBeDisabled();
+    const replacement = await inspectSvg(page, await exportSvg(page));
+    expect(replacement.labels).toContain("sample-a");
+    expect(replacement.labels).toContain("sample-b");
+    expect(replacement.labels).not.toContain("tissue");
+
+    // Overlapping sample ids must now resolve to the new file's metadata.
+    await importTissue(page);
+    await retainTissue(page, "kidney");
+    const newMetadata = await inspectSvg(page, await exportSvg(page));
+    expect(newMetadata.labels).toContain("sample-a");
+    expect(newMetadata.labels).not.toContain("sample-b");
+});
+
+test("range and CORS failures and cancelled header inspection leave opening usable", async ({
     page,
 }) => {
     await page.goto("./");
@@ -171,9 +316,7 @@ test("rejected ranges and cancelled header inspection leave opening usable", asy
         .getByLabel("File URL", { exact: true })
         .fill(fixtureOrigin + "/ignore-range.fw");
     await page.getByRole("button", { name: "Open URL", exact: true }).click();
-    await expect(page.locator(".opening-status.is-error")).toContainText(
-        /range|206/i,
-    );
+    await expect(page.getByRole("status")).toContainText(/range|206/i);
     await expect(
         page.getByRole("button", { name: "Open URL", exact: true }),
     ).toBeEnabled();
@@ -182,9 +325,7 @@ test("rejected ranges and cancelled header inspection leave opening usable", asy
         .getByLabel("File URL", { exact: true })
         .fill(fixtureOrigin + "/no-cors.fw");
     await page.getByRole("button", { name: "Open URL", exact: true }).click();
-    await expect(page.locator(".opening-status.is-error")).toContainText(
-        /CORS/,
-    );
+    await expect(page.getByRole("status")).toContainText(/CORS/);
     await expect(
         page.getByRole("button", { name: "Open URL", exact: true }),
     ).toBeEnabled();
@@ -202,19 +343,20 @@ test("rejected ranges and cancelled header inspection leave opening usable", asy
     await page
         .getByRole("button", { name: "Cancel opening", exact: true })
         .click();
-    await expect(page.locator(".opening-status.is-error")).toContainText(
-        /cancel/i,
-    );
+    await expect(page.getByRole("status")).toContainText(/cancel/i);
     await expect(
         page.getByRole("button", { name: "Open URL", exact: true }),
     ).toBeEnabled();
 
-    await page.getByLabel("Open file", { exact: true }).setInputFiles({
+    await page.getByLabel("Local file", { exact: true }).setInputFiles({
         name: "invalid.fw",
         mimeType: "application/octet-stream",
         buffer: Buffer.from("not a Figwig file"),
     });
-    await expect(page.locator(".opening-status.is-error")).toHaveText(/.+/);
+    await expect(page.getByRole("status")).toContainText(/truncated file/i);
+    await expect(
+        page.getByRole("button", { name: "Open URL", exact: true }),
+    ).toBeEnabled();
     await openLocal(page);
 });
 
@@ -223,28 +365,10 @@ test("native metadata import, filtering, and undo update the rendered samples", 
 }) => {
     await page.goto("./");
     await openLocal(page);
-    await page
-        .getByRole("button", { name: "View settings", exact: true })
-        .click();
-    await page
-        .getByRole("button", {
-            name: "Settings for Sample metadata",
-            exact: true,
-        })
-        .click();
-    await page
-        .getByRole("button", { name: /Import metadata from .* source/ })
-        .click();
-    const dialog = page
-        .getByRole("dialog")
-        .filter({ hasText: /Import metadata from\s+figwig\s+source/ });
-    await dialog.getByRole("combobox").fill("tissue");
-    await dialog.getByRole("option", { name: "tissue", exact: true }).click();
-    await dialog.getByRole("button", { name: "Import", exact: true }).click();
-    await expect(dialog).toBeHidden();
+    await navigate(page);
+    await importTissue(page);
     const imported = await inspectSvg(page, await exportSvg(page));
     expect(imported.labels).toContain("tissue");
-
     await page.getByRole("button", { name: /^Undo/ }).click();
     const undone = await inspectSvg(page, await exportSvg(page));
     expect(undone.labels).not.toContain("tissue");
@@ -252,10 +376,7 @@ test("native metadata import, filtering, and undo update the rendered samples", 
     const restored = await inspectSvg(page, await exportSvg(page));
     expect(restored.labels).toContain("tissue");
 
-    // The native locus/search field can retain a matching metadata category.
-    const search = page.locator("genome-spy-search-field input");
-    await search.fill("heart");
-    await search.press("Enter");
+    await retainTissue(page, "heart");
     const filtered = await inspectSvg(page, await exportSvg(page));
     expect(filtered.labels).toContain("sample-a");
     expect(filtered.labels).not.toContain("sample-b");
