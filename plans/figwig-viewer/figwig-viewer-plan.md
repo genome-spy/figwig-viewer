@@ -157,7 +157,7 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
 ### Architecture and current decisions
 
 - Pin development packages to master commit
-  `e8aeae207a71a869725393987dc32fe73db98e18`, exported from committed bytes.
+  `febc402867c5e1a833d7b876c9909b0cb49d95b5`, exported from committed bytes.
   This includes the App lifecycle and the updated Figwig reader. Use only public
   App/Core entry points. Keep the release migration and no-Pages-with-snapshots
   requirements in milestones 4 and 5.
@@ -318,6 +318,22 @@ BigBed requests for 411 cCREs at chr7:66,600,001–66,800,000, and preserved exa
 annotation/App/canvas identities across two synthetic Figwig opens. Whole-genome
 and detailed screenshots were visually inspected. No private file was accessed
 in this browser verification and no annotation data was copied into production.
+
+## Snapshot refresh after the shared-scale fix (2026-10-30)
+
+GenomeSpy #633 was squash-merged as
+`febc402867c5e1a833d7b876c9909b0cb49d95b5`. Rebuild both App/Core archives from
+that exact master commit through the existing clean export/build/pack script.
+The manifest, archive checksums, dependency paths, and lockfile now reference the
+merged fix; the previous archives are removed. App/Core and Figwig remain deduped.
+This is still a temporary development snapshot, to be removed before publication.
+
+Verification passed: archive SHA-256 checks, TypeScript, 10 unit tests, formatting,
+production build, and all six Chromium flows. The restarted normal dev server was
+also checked with actual hosted annotations and a synthetic Figwig: cytobands,
+cCREs, and genes stayed aligned after insertion, replacement, and broad/detailed
+zooming; signed signal rendered at base resolution. All source statuses completed
+without browser errors, and the WebGL screenshots were visually inspected.
 
 ## Implementation record (2026-10-29)
 
