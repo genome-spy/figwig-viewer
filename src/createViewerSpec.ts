@@ -7,7 +7,7 @@ export type QueryMode = "fast" | "exact";
 
 export const DEFAULT_QUERY_MODE: QueryMode = "fast";
 
-/** Keep the application and its hg38 navigation alive between file opens. */
+/** Keep annotations and hg38 navigation alive between file opens. */
 export function createAppSpec(): AppRootSpec {
     return {
         name: "tracks",
@@ -16,8 +16,33 @@ export function createAppSpec(): AppRootSpec {
         scales: {
             x: { name: "locus", type: "locus", zoom: true },
         },
-        resolve: { scale: { x: "shared" } },
-        vconcat: [],
+        resolve: {
+            scale: { x: "shared", color: "independent" },
+            axis: { x: "shared" },
+        },
+        axes: { x: { orient: "top", title: null } },
+        spacing: 7,
+        vconcat: [
+            {
+                import: {
+                    url: import.meta.env.BASE_URL + "specs/cytobands.json",
+                },
+            },
+            {
+                import: {
+                    url:
+                        import.meta.env.BASE_URL +
+                        "specs/bigbed-ccre-track.json",
+                },
+            },
+            {
+                import: {
+                    url:
+                        import.meta.env.BASE_URL +
+                        "specs/scored-refSeq-genes.json",
+                },
+            },
+        ],
     };
 }
 
@@ -29,6 +54,7 @@ export function createViewerSpec(
     return {
         name: "samples",
         description: source.name,
+        resolve: { axis: { x: "shared" } },
         samples: {
             identity: { metadataSource: "figwig" },
             labelTitle: "Sample",
@@ -97,7 +123,7 @@ export async function createPersistenceContext(
     const digest = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(
-            `figwig-viewer-spec-v3\nhg38\n${mode}\n${source.url}`,
+            `figwig-viewer-spec-v4\nhg38\n${mode}\n${source.url}`,
         ),
     );
     const id = Array.from(new Uint8Array(digest), (byte) =>

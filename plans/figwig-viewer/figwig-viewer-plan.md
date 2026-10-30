@@ -161,8 +161,8 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
   This includes the App lifecycle and the updated Figwig reader. Use only public
   App/Core entry points. Keep the release migration and no-Pages-with-snapshots
   requirements in milestones 4 and 5.
-- Launch GenomeSpy App immediately with an empty named concat, fixed hg38,
-  an explicitly owned zoomable locus scale, and shared x resolution. The native
+- Launch GenomeSpy App immediately with persistent annotations in a named concat,
+  fixed hg38, an explicitly owned zoomable locus scale, and shared x resolution. The native
   toolbar is the sole header. No landing card or separate welcome screen remains.
 - Open and File information are persistent public plugin actions. Opening uses
   a BaseDialog subclass and native component styling. Drag/drop remains supported.
@@ -253,6 +253,71 @@ Verify cancellation through native dialog Escape handling and actual locus/sampl
 state after deferred hash restoration, not only loading readiness. Reconcile the
 amendment after verification. The original release
 migration and deployment milestones remain pending.
+
+## Persistent hg38 annotations (2026-10-30)
+
+Add repository-owned JSON specifications under `public/specs/`, adapted from
+GenomeSpy's curated cytoband, BigBed cCRE, and scored RefSeq examples. Preserve
+their hosted `https://data.genomespy.app/` data URLs and source descriptions.
+Record upstream provenance and retain the MIT notice alongside these copied
+specifications. The paper specification is the composition reference; cohort
+metadata and paper-specific data are not copied.
+
+The root App owns the shared hg38 locus and composes cytobands, cCREs, and RefSeq
+genes from these local spec URLs. Insert the dynamic SampleView at child index 2
+through the public `views.insert` option, so the final order is cytobands, cCREs,
+Figwig samples, RefSeq genes. Keep annotations alive across same-kind replacements,
+including their visibility settings and collected data. Local/remote transitions
+retain the existing App recreation boundary. Use independent color scales and a
+single shared genomic x axis at the top of the stack, authored only on the root.
+The SampleView explicitly shares its x axis across its default independent-axis
+boundary. Remove descendant x-axis declarations and the cCRE example's authored
+chr7 domain. Preserve the whole-genome default and Experimental Figwig Viewer
+description.
+
+The BigBed source queries at most a 1 Mb window. Gate only its feature layer with
+native expression opacity using that same span threshold, and show a zoom-in hint
+outside it. Give the hint its own singleton data and scope the BigBed source to
+the feature layer. This avoids querying the full cCRE file or blocking visible-lazy-data
+readiness on a deliberately inactive annotation. Keep native gene score/semantic
+zoom and search behavior. Use public imports, composition, and insertion only.
+
+One implementation milestone: ship these three local specs, root composition,
+indexed SampleView insertion, provenance, and documentation together. Update the
+remote persistence format version because the named view/settings structure now
+includes annotations. Verify production and dev serving below `/figwig-viewer/`.
+
+Acceptance: annotations render before any Figwig is chosen; a local or remote open
+places samples between cCREs and genes; all tracks share locus navigation; sample
+replacement keeps the annotation views and visibility state; shared links replay
+locus, annotation visibility, and sample operations. Extend existing browser flows
+with small synthetic annotation data and a real BigBed fixture so normal tests
+remain offline. Run one bounded browser smoke against the actual hosted annotation
+data at whole-genome and detailed loci. Check loading errors and visible output.
+TypeScript, unit tests, formatting, build, and affected Chromium flows must pass.
+No upstream source changes, annotation data mirroring, assembly switching, or
+Pages publication are included.
+
+Independent review completed before implementation. The cCRE domain removal,
+separate hint data, shared loading threshold, and shared top locus axis are
+included in the scope.
+
+Tentative commit: `feat: add persistent hg38 annotation tracks`.
+
+Implemented and verified: three local specs and MIT provenance, indexed cohort
+insertion, independent colors and a single top locus axis, cCRE span gating,
+and annotation-aware persistence are in place. TypeScript, 10 unit tests,
+formatting, build, and all six Chromium flows passed. Regression coverage checks
+rendered annotation records and order, retained visibility without refetching
+on same-kind replacement, and visibility/locus/sample replay from remote links.
+Independent implementation review found no material production issues and its
+native-dialog visibility test improvement is included.
+
+The hosted-data Chrome smoke loaded cytobands and RefSeq once, used partial
+BigBed requests for 411 cCREs at chr7:66,600,001–66,800,000, and preserved exact
+annotation/App/canvas identities across two synthetic Figwig opens. Whole-genome
+and detailed screenshots were visually inspected. No private file was accessed
+in this browser verification and no annotation data was copied into production.
 
 ## Implementation record (2026-10-29)
 

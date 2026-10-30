@@ -103,6 +103,7 @@ export class ViewerController {
             this.#cohort = await api.views.insert(
                 api.views.get({ scope: [], view: "tracks" }),
                 spec,
+                { index: 2 },
             );
             this.#source = candidate;
             this.#mode = mode;

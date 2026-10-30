@@ -42,7 +42,8 @@ different repository path or custom domain.
 
 ## Opening data
 
-GenomeSpy App is visible from startup. Its Open action opens a native dialog for
+GenomeSpy App is visible from startup with hg38 cytobands, ENCODE cCREs, and
+RefSeq genes. Its Open action opens a native dialog for
 choosing a local file or entering a complete HTTPS URL. You can also drop one file
 anywhere in the viewer. File information shows the current source, track count,
 metadata fields, and dependency identity. Local files stay in your browser and
@@ -67,7 +68,12 @@ locus/search field. Shared links restore their saved locus. Replacing a file wit
 same source kind keeps the App, canvas, and current locus, and replaces only the
 SampleView. Imported metadata, sample operations, selections, and undo history reset
 for the new cohort. Independent annotation siblings can be retained by this
-lifecycle; the viewer does not currently add annotation tracks.
+lifecycle. The default order is cytobands, cCREs, Figwig samples, and RefSeq genes.
+The annotation views and their visibility settings survive same-kind replacement.
+Their JSON specifications are included in [public/specs](public/specs/README.md),
+with data read directly from GenomeSpy's hosted annotation assets. cCREs load when
+the visible span is at most 1 Mb; a hint appears at broader scales. RefSeq supports
+gene-name search and detailed transcripts as you zoom in.
 
 Remote sources must return HTTP 206 for byte ranges, allow the viewer's origin
 through Access-Control-Allow-Origin, and expose Content-Range through

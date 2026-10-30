@@ -21,3 +21,17 @@ Both files use track-order storage, 16,384-base tiles, and no extra zoom levels.
 
 The generator is original viewer-project code and invokes the upstream writer's
 public API. It does not copy the upstream fixture generator or any dataset.
+
+The annotation routes in `tests/annotationRoutes.ts` replace the three public hg38
+annotation resources with original synthetic records. Cytobands and gene records
+are small inline TSV tables served as real gzip bytes. The two genes each have a
+body on [8,112) and exons on [8,32) and [64,112), using the alternating gap/length
+encoding expected by `flattenCompressedExons`.
+
+`annotations.bb` contains two original intervals on each of chr1 and chr2:
+[8,32) with `ucscLabel=prom` and [64,96) with `ucscLabel=enhD`. Its autoSql schema
+preserves the public cCRE track's classification field. Generate it with
+`uv run --python 3.12 scripts/generateAnnotationFixtures.py`.
+`annotations.provenance.json` records its pinned writer and fingerprint separately
+from the Figwig fixtures. Browser routes preserve byte-range responses, so tests
+exercise the real BigBed reader without external annotation requests.

@@ -15,15 +15,15 @@ async function fixtureSource() {
 }
 
 describe("viewer specification", () => {
-    it("starts an empty application with persistent hg38 navigation", () => {
+    it("owns persistent hg38 navigation alongside the annotation tracks", () => {
         const spec = createAppSpec();
         expect(spec).toMatchObject({
             name: "tracks",
             description: "Experimental Figwig Viewer",
             assembly: "hg38",
             scales: { x: { name: "locus", type: "locus", zoom: true } },
-            resolve: { scale: { x: "shared" } },
-            vconcat: [],
+            resolve: { scale: { x: "shared" }, axis: { x: "shared" } },
+            axes: { x: { orient: "top", title: null } },
         });
         expect(spec).not.toHaveProperty("specId");
     });

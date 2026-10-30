@@ -1,22 +1,30 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { installAnnotationRoutes } from "./annotationRoutes";
 
 const fixture = (name: string) =>
     fileURLToPath(new URL("./fixtures/" + name, import.meta.url));
 const fixtureOrigin = "http://127.0.0.1:4174";
 const pageErrors = new WeakMap<Page, string[]>();
+const annotationRequests = new WeakMap<
+    Page,
+    Awaited<ReturnType<typeof installAnnotationRoutes>>
+>();
 
-test.beforeEach(({ page }) => {
+test.beforeEach(async ({ page }) => {
     const errors: string[] = [];
     pageErrors.set(page, errors);
     page.on("pageerror", (error) => errors.push(error.message));
+    annotationRequests.set(page, await installAnnotationRoutes(page));
 });
 test.afterEach(({ page }) => expect(pageErrors.get(page)).toEqual([]));
 
 async function expectOpened(page: Page, name: string): Promise<void> {
     await expect(page).toHaveTitle(name + " · Figwig Viewer");
-    await expect(page.locator("figwig-open-dialog")).toBeHidden();
+    await expect(
+        page.getByRole("dialog").filter({ hasText: "Open Figwig file" }),
+    ).toBeHidden();
     await expect(
         page.getByRole("button", { name: "File information", exact: true }),
     ).toBeVisible();
@@ -79,6 +87,22 @@ async function inspectSvg(page: Page, svg: string) {
                 ),
             ).sort((a, b) => a - b),
             barCount: bars.length,
+            trackOrder: Array.from(doc.querySelectorAll("[data-name]"))
+                .map((element) => element.getAttribute("data-name"))
+                .filter((name) =>
+                    [
+                        "ideogram-track",
+                        "ccre-track",
+                        "samples",
+                        "refseq-track",
+                    ].includes(name!),
+                ),
+            cytobandCount: doc.querySelectorAll(
+                '[data-name="ideogram-track"] [data-mark-type="rect"] rect',
+            ).length,
+            ccreCount: doc.querySelectorAll(
+                '[data-name="ccre-features"] [data-mark-type="rect"] rect',
+            ).length,
         };
     }, svg);
 }
@@ -98,6 +122,21 @@ async function inspectBaseResolution(page: Page) {
         })
         .toBe(true);
     return result!;
+}
+
+async function hideCytobands(page: Page): Promise<void> {
+    const settings = page.getByRole("button", {
+        name: "View settings",
+        exact: true,
+    });
+    await settings.click();
+    await page
+        .getByRole("checkbox", { name: "Cytobands", exact: true })
+        .uncheck();
+    await page.keyboard.press("Escape");
+    await expect(
+        page.getByRole("dialog", { name: "View settings", exact: true }),
+    ).toBeHidden();
 }
 
 async function importTissue(page: Page): Promise<void> {
@@ -141,8 +180,23 @@ test("startup uses the native App and Open dialog, including the aggregation cho
     await expect(page.locator("genome-spy-toolbar")).toContainText(
         "Experimental Figwig Viewer",
     );
+    const openDialog = page
+        .getByRole("dialog")
+        .filter({ hasText: "Open Figwig file" });
+    // Let the native entrance transition finish before testing dismissal.
+    await expect(openDialog).toHaveCSS("opacity", "1");
     await page.keyboard.press("Escape");
-    await expect(page.locator("figwig-open-dialog")).toBeHidden();
+    await expect(
+        page.getByRole("dialog").filter({ hasText: "Open Figwig file" }),
+    ).toBeHidden();
+    const annotations = await inspectSvg(page, await exportSvg(page));
+    expect(annotations.trackOrder).toEqual([
+        "ideogram-track",
+        "ccre-track",
+        "refseq-track",
+    ]);
+    expect(annotations.cytobandCount).toBeGreaterThan(0);
+    expect(annotations.labels).toContain("Zoom in to load cCREs");
     await page.getByRole("button", { name: "Open", exact: true }).click();
     await expect(page.getByLabel("Signal aggregation")).toHaveValue("fast");
     await openLocal(page);
@@ -175,6 +229,15 @@ test("local and cross-origin sources render the same signed hg38 signal", async 
     await openLocal(page);
     await navigate(page);
     const local = await inspectBaseResolution(page);
+    expect(local.trackOrder).toEqual([
+        "ideogram-track",
+        "ccre-track",
+        "samples",
+        "refseq-track",
+    ]);
+    expect(local.cytobandCount).toBeGreaterThan(0);
+    expect(local.ccreCount).toBeGreaterThan(0);
+    expect(local.labels).toContain("SYNTH_GENE_A");
     expect(local.labels).toContain("sample-a");
     expect(local.labels).toContain("sample-b");
     // Both negative and positive fixture magnitudes must survive into visible bars.
@@ -209,7 +272,9 @@ test("remote links replay the actual filtered rows and locus, then local opening
     await navigate(page);
     await importTissue(page);
     await retainTissue(page, "heart");
+    await hideCytobands(page);
     const filtered = await inspectSvg(page, await exportSvg(page));
+    expect(filtered.cytobandCount).toBe(0);
     expect(filtered.labels).toContain("sample-a");
     expect(filtered.labels).not.toContain("sample-b");
     const locus = await page
@@ -254,6 +319,7 @@ test("remote links replay the actual filtered rows and locus, then local opening
         .getByRole("button", { name: "Close", exact: true })
         .click();
     const replayed = await inspectSvg(page, await exportSvg(page));
+    expect(replayed.cytobandCount).toBe(0);
     expect(replayed.labels).toContain("tissue");
     expect(replayed.labels).toContain("sample-a");
     expect(replayed.labels).not.toContain("sample-b");
@@ -297,7 +363,9 @@ test("same-kind replacement preserves the App, canvas, and locus but resets the 
     await navigate(page);
     await importTissue(page);
     await retainTissue(page, "heart");
+    await hideCytobands(page);
     const filtered = await inspectSvg(page, await exportSvg(page));
+    expect(filtered.cytobandCount).toBe(0);
     expect(filtered.labels).not.toContain("sample-b");
     const shell = await page.locator(".genome-spy-app").elementHandle();
     const canvas = await page
@@ -306,6 +374,7 @@ test("same-kind replacement preserves the App, canvas, and locus but resets the 
     const locus = await page
         .locator("genome-spy-search-field input")
         .inputValue();
+    const annotationReadCount = annotationRequests.get(page)!.length;
 
     await page.getByRole("button", { name: "Open", exact: true }).click();
     await openLocal(page, "replacement.fw");
@@ -318,6 +387,15 @@ test("same-kind replacement preserves the App, canvas, and locus but resets the 
     );
     await expect(page.getByRole("button", { name: /^Undo/ })).toBeDisabled();
     const replacement = await inspectSvg(page, await exportSvg(page));
+    expect(replacement.trackOrder).toEqual([
+        "ccre-track",
+        "samples",
+        "refseq-track",
+    ]);
+    expect(replacement.cytobandCount).toBe(0);
+    expect(replacement.ccreCount).toBeGreaterThan(0);
+    expect(replacement.labels).toContain("SYNTH_GENE_A");
+    expect(annotationRequests.get(page)!.length).toBe(annotationReadCount);
     expect(replacement.labels).toContain("sample-a");
     expect(replacement.labels).toContain("sample-b");
     expect(replacement.labels).not.toContain("tissue");
@@ -399,7 +477,9 @@ test("native metadata import, filtering, and undo update the rendered samples", 
     expect(restored.labels).toContain("tissue");
 
     await retainTissue(page, "heart");
+    await hideCytobands(page);
     const filtered = await inspectSvg(page, await exportSvg(page));
+    expect(filtered.cytobandCount).toBe(0);
     expect(filtered.labels).toContain("sample-a");
     expect(filtered.labels).not.toContain("sample-b");
     expect(filtered.barCount).toBeLessThan(restored.barCount);

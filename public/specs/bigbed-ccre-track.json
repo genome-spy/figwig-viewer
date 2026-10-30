@@ -1,0 +1,86 @@
+{
+  "description": [
+    "BigBed cCRE track example.",
+    "Data source: ENCODE Registry of candidate cis-Regulatory Elements, distributed by UCSC as `gbdb/hg38/encode3/ccre/encodeCcreCombined.bb`. Terms: ENCODE data are unrestricted and UCSC downloadable data files are freely reusable."
+  ],
+  "name": "ccre-track",
+  "title": {
+    "text": "ENCODE cCREs",
+    "orient": "none"
+  },
+  "configurableVisibility": true,
+  "height": 20,
+  "view": {
+    "stroke": "lightgray"
+  },
+  "params": [
+    {
+      "name": "ccreWindowSize",
+      "value": 1000000
+    }
+  ],
+  "layer": [
+    {
+      "name": "ccre-features",
+      "opacity": {
+        "expr": "abs(span(domain('x'))) <= ccreWindowSize ? 1 : 0"
+      },
+      "data": {
+        "lazy": {
+          "type": "bigbed",
+          "url": "https://data.genomespy.app/sample-data/encodeCcreCombined.hg38.bb",
+          "windowSize": {
+            "expr": "ccreWindowSize"
+          }
+        }
+      },
+      "encoding": {
+        "x": {
+          "chrom": "chrom",
+          "pos": "chromStart",
+          "type": "locus"
+        },
+        "x2": {
+          "chrom": "chrom",
+          "pos": "chromEnd"
+        },
+        "color": {
+          "field": "ucscLabel",
+          "type": "nominal",
+          "scale": {
+            "domain": ["prom", "enhP", "enhD", "K4m3", "CTCF"],
+            "range": ["#FF0000", "#FFA700", "#FFCD00", "#FFAAAA", "#00B0F0"]
+          },
+          "legend": null
+        }
+      },
+      "mark": "rect"
+    },
+    {
+      "name": "ccre-zoom-message",
+      "opacity": {
+        "expr": "abs(span(domain('x'))) > ccreWindowSize ? 1 : 0"
+      },
+      "data": {
+        "values": [{}]
+      },
+      "mark": {
+        "type": "text",
+        "text": "Zoom in to load cCREs",
+        "size": 11,
+        "color": "#666666",
+        "align": "center",
+        "baseline": "middle",
+        "tooltip": null
+      },
+      "encoding": {
+        "x": {
+          "value": 0.5
+        },
+        "y": {
+          "value": 0.5
+        }
+      }
+    }
+  ]
+}
