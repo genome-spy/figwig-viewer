@@ -83,15 +83,20 @@ async function inspectSvg(page: Page, svg: string) {
     }, svg);
 }
 
-/** Navigation first changes the viewport, then publishes finer lazy bins. */
+/** Wait for fine bins and the viewport-driven y-scale animation to settle. */
 async function inspectBaseResolution(page: Page) {
     let result: Awaited<ReturnType<typeof inspectSvg>> | undefined;
+    let previousGeometry = "";
     await expect
         .poll(async () => {
             result = await inspectSvg(page, await exportSvg(page));
-            return result.heights.length;
+            const geometry = JSON.stringify([result.heights, result.barCount]);
+            const stable =
+                result.heights.length >= 4 && geometry === previousGeometry;
+            previousGeometry = geometry;
+            return stable;
         })
-        .toBeGreaterThanOrEqual(4);
+        .toBe(true);
     return result!;
 }
 
