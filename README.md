@@ -55,11 +55,12 @@ separate work tracked in [GenomeSpy #629](https://github.com/genome-spy/genome-s
 Tracks become samples using their stored names. Use View settings → Settings for
 Sample metadata → Import metadata from figwig source to choose metadata columns.
 The viewer does not import all columns automatically. Signal queries default to
-exact means, preserving negative and zero values while omitting NaNs. The signal
-y-axis autoscales to the current viewport. Fast browsing
-is an explicit dialog option; coarse summary means are approximate and count
-missing values as zero. A file without suitable summaries may fail at coarse zooms
-in fast mode.
+Fast browsing, which uses approximate summaries at coarse scales and counts missing
+values as zero. Choose Exact means in the opening dialog to omit NaNs from means;
+exact queries over wide intervals can require substantial reading and decoding.
+Both modes preserve negative and zero values. The signal y-axis autoscales to the
+current viewport. A file without suitable summaries may fail at coarse zooms in
+fast mode.
 
 The first file starts at a bounded interval of its first non-empty chromosome.
 Navigate using GenomeSpy's locus/search field. Replacing a file with another of the
@@ -75,7 +76,8 @@ body is consumed. HTTP URLs are accepted only for localhost development. URLs
 requiring custom authorization headers are not supported.
 
 Remote sessions retain the source in the url query parameter and let GenomeSpy
-own the hash for view state. The native Share action includes both. Signed URLs
+own the hash for view state. Exact-mode links also include mode=exact. The native
+Share action includes the source, query mode, and view state. Signed URLs
 retain their tokens and access requirements and can expire. Local sessions keep
 sample operations and undo/redo but disable source sharing and persisted bookmarks.
 Switching files clears the previous source's state. App's embed mode is fixed at

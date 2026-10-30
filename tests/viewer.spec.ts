@@ -141,8 +141,7 @@ test("startup uses the native App and Open dialog, including the aggregation cho
     await page.keyboard.press("Escape");
     await expect(page.locator("figwig-open-dialog")).toBeHidden();
     await page.getByRole("button", { name: "Open", exact: true }).click();
-    await expect(page.getByLabel("Signal aggregation")).toHaveValue("exact");
-    await page.getByLabel("Signal aggregation").selectOption("fast");
+    await expect(page.getByLabel("Signal aggregation")).toHaveValue("fast");
     await openLocal(page);
     await expect(
         page.getByRole("button", { name: "Share", exact: true }),
@@ -198,7 +197,7 @@ test("remote links replay the actual filtered rows and locus, then local opening
     page,
 }) => {
     await page.goto(
-        "./?url=" + encodeURIComponent(fixtureOrigin + "/signed.fw"),
+        "./?mode=exact&url=" + encodeURIComponent(fixtureOrigin + "/signed.fw"),
     );
     await expectOpened(page, "signed.fw");
     await navigate(page);
@@ -219,6 +218,7 @@ test("remote links replay the actual filtered rows and locus, then local opening
     const sharedURL = await share
         .getByLabel("Here's a link for you:", { exact: true })
         .inputValue();
+    expect(new URL(sharedURL).searchParams.get("mode")).toBe("exact");
     const bookmark = JSON.parse(
         await share.locator("#bookmark-json").inputValue(),
     );
@@ -233,9 +233,20 @@ test("remote links replay the actual filtered rows and locus, then local opening
     await share.getByRole("button", { name: "Close", exact: true }).click();
     await page.reload();
     await expectOpened(page, "signed.fw");
+    expect(new URL(page.url()).searchParams.get("mode")).toBe("exact");
     await expect(page.locator("genome-spy-search-field input")).toHaveValue(
         locus,
     );
+    await page
+        .getByRole("button", { name: "File information", exact: true })
+        .click();
+    const information = page
+        .getByRole("dialog")
+        .filter({ hasText: "File information" });
+    await expect(information).toContainText("Exact means");
+    await information
+        .getByRole("button", { name: "Close", exact: true })
+        .click();
     const replayed = await inspectSvg(page, await exportSvg(page));
     expect(replayed.labels).toContain("tissue");
     expect(replayed.labels).toContain("sample-a");

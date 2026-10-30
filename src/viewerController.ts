@@ -1,5 +1,6 @@
 import { embed, type AppEmbedResult } from "@genome-spy/app";
 import {
+    DEFAULT_QUERY_MODE,
     createAppSpec,
     createPersistenceContext,
     createViewerSpec,
@@ -35,7 +36,7 @@ export class ViewerController {
     #cohort: CohortHandle | undefined;
     #kind: PreparedSource["kind"] = "local";
     #source: PreparedSource | undefined;
-    #mode: QueryMode = "exact";
+    #mode: QueryMode = DEFAULT_QUERY_MODE;
     #inspection: AbortController | undefined;
     #busy = false;
 
@@ -83,7 +84,7 @@ export class ViewerController {
 
         try {
             candidate = await inspectFigwigSource(input, inspection.signal);
-            const mode = options.mode ?? "exact";
+            const mode = options.mode ?? DEFAULT_QUERY_MODE;
             const context = await createPersistenceContext(candidate, mode);
             const spec = createViewerSpec(candidate, mode);
             inspection.signal.throwIfAborted();
@@ -182,7 +183,7 @@ function updateSourceUrl(
     const url = new URL(window.location.href);
     if (source.kind === "remote") {
         url.searchParams.set("url", source.url);
-        if (mode === "fast") url.searchParams.set("mode", mode);
+        if (mode === "exact") url.searchParams.set("mode", mode);
         else url.searchParams.delete("mode");
     } else {
         url.searchParams.delete("url");
@@ -193,7 +194,7 @@ function updateSourceUrl(
 }
 
 function clearSourceUrl(): void {
-    updateSourceUrl({ kind: "local", url: "" }, "exact");
+    updateSourceUrl({ kind: "local", url: "" }, DEFAULT_QUERY_MODE);
 }
 
 function openingErrorMessage(error: unknown): string {

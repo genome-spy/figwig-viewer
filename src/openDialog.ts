@@ -8,7 +8,7 @@ import {
     type CSSResultGroup,
     type PropertyDeclarations,
 } from "lit";
-import type { QueryMode } from "./createViewerSpec";
+import { DEFAULT_QUERY_MODE, type QueryMode } from "./createViewerSpec";
 import type { ViewerState } from "./viewerController";
 
 // App's public dialog export omits its implementation types from the npm archive.
@@ -48,7 +48,7 @@ export class OpenDialog extends NativeDialogBase {
     ];
 
     declare state: ViewerState;
-    mode: QueryMode = "exact";
+    mode: QueryMode = DEFAULT_QUERY_MODE;
     url = "";
     openSource: (input: File | string, mode: QueryMode) => void = () => {};
     cancelOpening: () => void = () => {};
@@ -133,8 +133,8 @@ export class OpenDialog extends NativeDialogBase {
                             .value as QueryMode;
                     }}
                 >
-                    <option value="exact">Exact means</option>
                     <option value="fast">Fast browsing</option>
+                    <option value="exact">Exact means</option>
                 </select>
                 <small
                     >Fast browsing uses approximate summaries at coarse scales

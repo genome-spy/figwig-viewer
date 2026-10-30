@@ -4,11 +4,11 @@ import { showDialog } from "@genome-spy/app";
 import { ViewerController, type ViewerState } from "./viewerController";
 import "./openDialog";
 import type { OpenDialog } from "./openDialog";
-import type { QueryMode } from "./createViewerSpec";
+import { DEFAULT_QUERY_MODE, type QueryMode } from "./createViewerSpec";
 
 const mount = document.querySelector<HTMLDivElement>("#app")!;
 let dialog: OpenDialog | undefined;
-let mode: QueryMode = "exact";
+let mode: QueryMode = DEFAULT_QUERY_MODE;
 const controller = new ViewerController({
     mount,
     requestOpen: showOpen,
@@ -67,7 +67,10 @@ document.addEventListener("drop", (event) => {
 const initialUrl = new URL(window.location.href);
 const initialSource = initialUrl.searchParams.get("url");
 const restoreHash = initialSource ? initialUrl.hash : "";
-mode = initialUrl.searchParams.get("mode") === "fast" ? "fast" : "exact";
+mode =
+    initialUrl.searchParams.get("mode") === "exact"
+        ? "exact"
+        : DEFAULT_QUERY_MODE;
 // Empty App launch must not restore a cohort bookmark before its SampleView exists.
 if (initialUrl.hash) {
     initialUrl.hash = "";

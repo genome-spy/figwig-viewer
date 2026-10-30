@@ -4,6 +4,9 @@ import type { PreparedSource } from "./figwigSource";
 export type AppRootSpec = Exclude<Parameters<typeof embed>[1], string>;
 export type ViewerSpec = SampleSpec;
 export type QueryMode = "fast" | "exact";
+
+export const DEFAULT_QUERY_MODE: QueryMode = "fast";
+
 export type InitialLocus = [
     { chrom: string; pos: number },
     { chrom: string; pos: number },
