@@ -15,7 +15,7 @@ npm run dev
 ```
 
 Open http://127.0.0.1:5173/figwig-viewer/. The dev server explicitly uses the
-packaged GenomeSpy production entry, since the snapshot archive omits the source
+packaged GenomeSpy production entry, since the package archive omits the source
 files selected by its development export condition.
 
 ```sh
@@ -103,34 +103,32 @@ insertion, initial visible signal loading also has a 30-second deadline. Inspect
 errors keep the previous file open; insertion failures leave an empty App ready
 for another file.
 
-## Temporary GenomeSpy snapshot
+## GenomeSpy preview dependency
 
-Figwig support is not yet available in the required released App/Core packages.
-Development uses the exact master commit recorded in
-[vendor/genomespy/snapshot.json](vendor/genomespy/snapshot.json). Both npm archives
-are committed, with SHA-256 checksums and the upstream MIT notice. A fresh clone
-does not depend on a local GenomeSpy checkout or rebuild GenomeSpy during npm ci.
+Development uses the pinned
+[GenomeSpy App preview at 58bd423](https://pkg.pr.new/@genome-spy/app@58bd423).
+App declares its matching Core preview dependency, which npm installs transitively;
+the viewer does not depend directly on Core. The lockfile records both preview
+archives and their integrity hashes.
 
-To rebuild the pinned snapshot from upstream, or export its committed bytes from
-an existing local Git repository:
+A fresh clone only needs `npm ci`. No local GenomeSpy checkout, vendored archives,
+or snapshot-build script is required. To update the App preview:
 
 ```sh
-npm run snapshot:prepare
-npm run snapshot:prepare -- --source /path/to/genome-spy
-npm install
+npm install --save-exact https://pkg.pr.new/@genome-spy/app@<commit>
 ```
 
-The script runs the upstream production build and real npm pack lifecycle hooks
-in a disposable directory. Do not edit or republish these archives. Snapshot
-changes require updating the manifest, dependency paths, lockfile, and checks.
+Keep the production export condition in Vite while App's archive omits the
+JavaScript files referenced by its development exports. The File information
+dialog identifies the App dependency used by the viewer.
 
-**Before the first GitHub Pages deployment**, switch App and Core to a matching
-npm release containing the required Figwig and dynamic SampleView support. Remove the vendor snapshot,
-preparation script, snapshot-only configuration and documentation, then rerun
-clean installation, type checks, tests, and the production build. There is no
-Pages deployment workflow yet; development CI only verifies the app.
+**Before the first GitHub Pages deployment**, replace the previews with matching
+npm releases containing the required Figwig and dynamic SampleView support, then
+verify a clean installation, type checks, tests, and the production build. There
+is no Pages deployment workflow yet; development CI only verifies the app.
 
 ## License
 
-The viewer is MIT-licensed. GenomeSpy's notice is preserved alongside the temporary
-snapshot archives; other dependencies retain their respective licenses.
+The viewer is MIT-licensed. GenomeSpy's MIT notice is retained in
+[public/specs/LICENSE](public/specs/LICENSE); dependency packages retain their
+respective licenses.

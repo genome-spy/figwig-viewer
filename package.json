@@ -16,15 +16,13 @@
     "test": "vitest run --reporter=agent",
     "test:e2e": "playwright test",
     "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
-    "snapshot:prepare": "node scripts/prepareGenomespySnapshot.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.4.2",
     "@fortawesome/free-solid-svg-icons": "^6.4.2",
-    "@genome-spy/app": "file:vendor/genomespy/genome-spy-app-1.2.0-c5565d606cae.tgz",
-    "@genome-spy/core": "file:vendor/genomespy/genome-spy-core-1.2.0-c5565d606cae.tgz",
+    "@genome-spy/app": "https://pkg.pr.new/@genome-spy/app@58bd423",
     "@genome-spy/figwig": "0.2.4",
     "generic-filehandle2": "^2.5.1",
     "lit": "^3.3.0"

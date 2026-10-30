@@ -1,12 +1,12 @@
 # Figwig Viewer implementation plan
 
-Status: milestones 1–3 implemented and verified; milestones 4 and 5 wait for the required release and publication readiness.
+Status: milestones 1–3 implemented and verified; local snapshots replaced by the App preview at 58bd423. The stable npm release and Pages publication remain pending.
 
 Written: 2026-10-29.
 
 Project directory: /Users/klavikka/projektit/figwig-viewer/.
 
-Upstream baseline: GenomeSpy master at [d983873abaa5e21b8b7eb35e55221a6e9a19f3da](https://github.com/genome-spy/genome-spy/commit/d983873abaa5e21b8b7eb35e55221a6e9a19f3da), verified against the clean local master checkout on this date. This is a fixed snapshot; subsequent master commits do not enter the viewer automatically.
+Original implementation baseline (superseded by the preview dependency below): GenomeSpy master at [d983873abaa5e21b8b7eb35e55221a6e9a19f3da](https://github.com/genome-spy/genome-spy/commit/d983873abaa5e21b8b7eb35e55221a6e9a19f3da), verified against the clean local master checkout on this date. This is a fixed snapshot; subsequent master commits do not enter the viewer automatically.
 
 ## Intended result
 
@@ -29,16 +29,16 @@ The first version does not add a backend, proxy, desktop wrapper, file conversio
 
 ## Architecture check
 
-| Concern                             | Owner and reuse decision                                                                                                             |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Figwig parsing and header discovery | Use the published @genome-spy/figwig reader and generic-filehandle2. Do not implement the binary format in the viewer.               |
-| Signal loading and rendering        | Use the snapshot App's existing Core Figwig lazy source, genome definitions, scales, marks, and data-loading APIs.                   |
-| Sample identity and metadata        | Use App's Figwig metadata backend and samples.identity. Keep track names as canonical sample identifiers.                            |
-| Sample operations and provenance    | Keep grouping, filtering, sorting, undo/redo, and metadata workflows in App.                                                         |
-| Source lifecycle                    | A viewer controller owns candidate inspection, source URLs, the current embed, and replacement/disposal.                             |
-| Viewer-specific UI                  | Use the public App plugin toolbar/menu interfaces and public dialog helpers. Do not reach through the agent API or patch App DOM.    |
-| Persistence                         | Use App's standalone mode for remote datasets and embedded mode for local datasets, as detailed below.                               |
-| Packaging and deployment            | The viewer owns its build, snapshot artifacts, lockfile, tests, and Pages workflow. No upstream changes are required by this design. |
+| Concern                             | Owner and reuse decision                                                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Figwig parsing and header discovery | Use the published @genome-spy/figwig reader and generic-filehandle2. Do not implement the binary format in the viewer.            |
+| Signal loading and rendering        | Use the preview App's existing Core Figwig lazy source, genome definitions, scales, marks, and data-loading APIs.                 |
+| Sample identity and metadata        | Use App's Figwig metadata backend and samples.identity. Keep track names as canonical sample identifiers.                         |
+| Sample operations and provenance    | Keep grouping, filtering, sorting, undo/redo, and metadata workflows in App.                                                      |
+| Source lifecycle                    | A viewer controller owns candidate inspection, source URLs, the current embed, and replacement/disposal.                          |
+| Viewer-specific UI                  | Use the public App plugin toolbar/menu interfaces and public dialog helpers. Do not reach through the agent API or patch App DOM. |
+| Persistence                         | Use App's standalone mode for remote datasets and embedded mode for local datasets, as detailed below.                            |
+| Packaging and deployment            | The viewer owns its build, lockfile, tests, and Pages workflow. No upstream changes are required by this design.                  |
 
 Relevant upstream contracts at the pinned commit:
 
@@ -59,25 +59,24 @@ Use the App's public embed function and plugin types, and import @genome-spy/app
 
 The opening screen contains Open file, a drop area, a labeled URL field, and a clear loading/error status. Keep its host outside the element owned by embed/finalize. Validate the file with the reader rather than relying on a .fw or .figwig suffix.
 
-### 2. Pin and package the unreleased GenomeSpy snapshot
+### 2. Use the pinned GenomeSpy App preview
 
-This is a development-only bootstrap. The user expects the required GenomeSpy master changes to be released before this app is first published on GitHub Pages. Switching to that release and removing the snapshot workaround are prerequisites for the first deployment, not post-launch follow-up work.
+Use `https://pkg.pr.new/@genome-spy/app@58bd423`, whose archive SHA-1 matches
+`5cae70e9f3624758b46c7ba5e8b3c822f06a8ea3`. App declares the matching Core
+preview transitively. The viewer needs no direct Core dependency, overrides,
+local source checkout, vendored archives, manifest, or snapshot-build script.
+Commit the npm lockfile so all preview dependencies have integrity hashes.
 
-Until that release is available, create npm archives from a clean temporary checkout of the exact upstream commit and keep those artifacts in vendor/genomespy/. Development and pre-deployment CI then use npm ci without fetching or rebuilding GenomeSpy.
+App bundles Core at runtime, while its declarations depend on Core types. The
+preview's rewritten Core dependency keeps those artifacts aligned automatically.
+Keep Vite's production export conditions because App's archive omits the
+JavaScript referenced by its development exports. The existing dialog typing
+bridge is still needed because the public dialog declarations reference omitted
+implementation files. These are upstream App packaging issues.
 
-The snapshot preparation script will:
-
-1. Read the repository URL and full commit from vendor/genomespy/snapshot.json, check out exactly that commit into a disposable directory, and verify HEAD.
-2. Use an explicitly recorded Node 24/npm toolchain compatible with upstream. Install from upstream's lockfile and run the supported root production build initially; avoid inventing a reduced build path before the package boundary is proven.
-3. Run actual npm pack for both @genome-spy/core and @genome-spy/app, including package lifecycle hooks. Core's prepack hook rewrites source exports to packaged dist exports, so copying package folders or packing with scripts disabled is insufficient.
-4. Preserve complete archives, including App CSS, dynamic Figwig/rendering chunks, schemas, and declarations. Give archive filenames a commit suffix and record SHA-256 checksums, upstream versions, preparation commands, toolchain versions, and license provenance.
-5. Install both packages as local archive dependencies and commit the viewer lockfile. Verify that App's transitive Core dependency resolves to the same snapshot; do not allow the published Core with the same nominal version to substitute for it.
-
-App bundles Core at runtime, but its declarations still depend on Core types. Therefore both packages must come from this snapshot even if viewer code only calls App. A clean-install/type-check/bundle smoke test is the first gate. Any dependency-resolution adjustment belongs in the viewer package configuration, not the upstream source checkout.
-
-Only refreshing the snapshot rebuilds these archives. There is no runtime CDN dependency, moving master dependency, neighboring-checkout symlink, or npm publication.
-
-Before the first Pages deployment, select a published GenomeSpy release containing the pinned changes and required Figwig/plugin APIs. Replace both App and Core archive dependencies with matching npm release dependencies and regenerate the lockfile. Remove vendor/genomespy/, the snapshot preparation script, snapshot-only aliases or overrides, and snapshot-specific build/CI steps and documentation. Keep ordinary dependency attribution and record the released version. Do not retain a snapshot fallback or a second dependency path. A fresh install, type check, production build, and file-opening smoke test must pass using the released packages before deployment is enabled.
+Before the first Pages deployment, replace the preview dependency with a matching
+stable npm release as previously agreed. Validate clean installation, public API
+types, local/remote opening, and the production build before enabling deployment.
 
 ### 3. Inspect sources, then generate one generic App spec
 
@@ -103,7 +102,7 @@ The recipe's mm10 assumption, rowLabel, tissue hierarchy, palettes, bookmarks, a
 
 Install a plugin for each embed that registers Open and File information actions. The controller supplies the opening callback and read-only file information; the plugin owns its UI registrations and returns a disposer.
 
-File information shows the source name, byte size when known, genome label, chromosome and track counts, available metadata fields, and the GenomeSpy dependency version. During snapshot-based development, the commit may identify the dependency; the published app shows the released package version. Use a dialog in the first version. App's embedded mode does not attach a side-panel host, so a uniform dialog works for both source kinds without private shell access. A side panel is a later presentation enhancement if the public contracts support it for both modes.
+File information shows the source name, byte size when known, genome label, chromosome and track counts, available metadata fields, and the GenomeSpy dependency version. During preview development, show the declared App dependency; the published app shows the released package version. Use a dialog in the first version. App's embedded mode does not attach a side-panel host, so a uniform dialog works for both source kinds without private shell access. A side panel is a later presentation enhancement if the public contracts support it for both modes.
 
 Reuse native sample/metadata controls, export actions, and provenance. Add no duplicate toolbar, custom sample store, or dependence on agent-only exposure APIs. Show user-controlled labels and metadata as text or escaped templates.
 
@@ -129,7 +128,7 @@ Handle rejected embed calls and asynchronous lazy-source errors. A fulfilled emb
 
 Build all runtime assets into dist and deploy it through GitHub Actions. Configure the repository base path, expected initially to be /figwig-viewer/, while keeping it configurable for another repository name or a custom domain. Verify lazy chunks, CSS, fonts, and URL bootstrap under that non-root path. Follow the [Vite GitHub Pages deployment guidance](https://vite.dev/guide/static-deploy.html#github-pages).
 
-Development CI initially installs from the committed lockfile and local snapshot archives, checks types and focused tests, builds, and runs browser smoke tests against the production output. Before enabling deployment, migrate to the published GenomeSpy packages and remove the snapshot path as specified in milestone 4. Deployment CI then uses an ordinary npm ci from the release-based lockfile. The deployment job depends on those checks and publishes only dist. The workflow can be prepared before a GitHub repository is chosen; enabling Pages and performing the first deployment require both the actual remote destination and completion of the release migration. Do not publish a snapshot-backed app to Pages.
+Development CI installs the pinned preview dependencies from the committed lockfile, checks types and focused tests, builds, and runs browser smoke tests against the production output. Before enabling deployment, replace the preview with the stable GenomeSpy npm release as specified in milestone 4. Deployment CI then uses an ordinary npm ci from the release-based lockfile. The deployment job depends on those checks and publishes only dist. The workflow can be prepared before a GitHub repository is chosen; enabling Pages and performing the first deployment require both the actual remote destination and completion of the release migration. Do not publish a preview-backed app to Pages.
 
 ## Proposed files
 
@@ -140,10 +139,10 @@ Development CI initially installs from the committed lockfile and local snapshot
 - src/createViewerSpec.ts for the pure generic spec generator.
 - src/figwigPlugin.ts and a small file-information dialog.
 - src/styles.css for opening-screen and viewer-specific layout only.
-- Temporary development files: scripts/prepareGenomespySnapshot.mjs and vendor/genomespy/ snapshot archives, manifest, and license notices. Remove the script and vendor directory before the first Pages deployment; retain any required dependency notices in the normal attribution location.
+- GenomeSpy App is a pinned preview URL in package.json; its Core preview is transitive. Keep dependency notices in public/specs/LICENSE.
 - tests/fixtures/ with tiny original Figwig files and generation provenance, plus focused browser tests.
 - .github/workflows/ for verification and Pages deployment.
-- README.md for operation, server requirements, development, and snapshot refresh/release migration.
+- README.md for operation, server requirements, development, and preview/release migration.
 
 Keep modules proportional to the implementation. Combine files when the split adds indirection without separating a real responsibility.
 
@@ -156,11 +155,9 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
 
 ### Architecture and current decisions
 
-- Pin development packages to master commit
-  `c5565d606cae8a129b67e798ef273269822120ad`, exported from committed bytes.
-  This includes the App lifecycle and the updated Figwig reader. Use only public
-  App/Core entry points. Keep the release migration and no-Pages-with-snapshots
-  requirements in milestones 4 and 5.
+- Use the App preview at `https://pkg.pr.new/@genome-spy/app@58bd423`, with its
+  matching Core preview installed transitively. Use only public App entry points.
+  Keep the stable-release migration and Pages requirements in milestones 4 and 5.
 - Launch GenomeSpy App immediately with persistent annotations in a named concat,
   fixed hg38, an explicitly owned zoomable locus scale, and shared x resolution. The native
   toolbar is the sole header. No landing card or separate welcome screen remains.
@@ -319,33 +316,25 @@ annotation/App/canvas identities across two synthetic Figwig opens. Whole-genome
 and detailed screenshots were visually inspected. No private file was accessed
 in this browser verification and no annotation data was copied into production.
 
-## Current snapshot and remote-reader compatibility (2026-10-30)
+## Current preview and remote-reader compatibility (2026-10-30)
 
-GenomeSpy master commit `c5565d606cae8a129b67e798ef273269822120ad` includes
-Figwig 0.2.4 in the bundled App/Core readers. Remote signal and metadata reads
-accept an unknown physical file size when CORS hides Content-Range. The viewer's
-range check requires HTTP 206 and treats the exposed file size as optional.
-File information displays Unknown when that size is unavailable. Known physical
-sizes, truncated reads, cancellation, and rejection of ignored ranges remain
-validated.
+The App preview at 58bd423 replaces the local snapshot bootstrap. The App archive
+matches the user-supplied SHA-1, and its dependency manifest declares the matching
+Core preview. Remove the vendored archives, snapshot manifest, preparation script,
+and direct Core dependency. Preserve the existing MIT notice in public/specs/LICENSE.
 
-This snapshot also preserves physical scales across same-type declaration edits
-and view mutations, retaining the original opacity and WebGL callbacks. The
-semantic-zoom and WebGL pixel regressions remain.
+Figwig 0.2.4 remains the published reader dependency. Remote signal and metadata
+reads accept an unknown physical file size when CORS hides Content-Range. The
+viewer requires HTTP 206 and displays Unknown when the file size is unavailable.
+Known-size validation, truncated-read checks, cancellation, and rejection of
+ignored ranges remain covered. The viewer continues to assume hg38 and labels
+the curated example as mm10 chr1.
 
-Rebuild both App/Core archives from the exact committed master snapshot through
-the clean export/build/pack script. Manifest checksums, dependency paths, and the
-lockfile must agree, with App/Core and Figwig deduped. Remove the previous
-archives. Matching released App/Core packages must replace snapshots before Pages
-publication.
-
-Verification passed: type checks, 11 unit tests, formatting, production build,
-archive checksums, dependency deduplication, and all six Chromium flows. The
-cross-origin signal comparison uses real browser CORS filtering without exposing
-Content-Range. The hosted chromatin URL also opened in the normal dev server with
-that header hidden from JavaScript: overview and chr1 navigation completed with
-signal rows, no loading errors, and HTTP 206 responses. The rendered view was
-visually inspected.
+Preview migration verification passed: clean npm ci, type checks, 11 unit tests,
+formatting, production build, and all six Chromium flows. The public chromatin
+URL also opened in Chromium with Content-Range hidden from JavaScript, completed
+overview and chr1 signal loading, and reported no browser errors. The rendered
+view was visually inspected. Pages remains disabled.
 
 ## Implementation record (2026-10-29)
 
@@ -358,7 +347,7 @@ visually inspected.
 
 ## Implementation milestones
 
-### Milestone 1: Prove the external snapshot dependency boundary
+### Milestone 1: Prove the external snapshot dependency boundary (completed; historical)
 
 Outcome: a fresh standalone project installs the exact App/Core snapshot, type-checks public API imports, and renders a tiny Figwig through the production package artifacts.
 
@@ -394,17 +383,17 @@ Documentation: describe remote sharing/bookmarks and local reselection; record t
 
 Tentative commit: feat: add Figwig actions and source-specific sessions
 
-### Milestone 4: Replace the development snapshot with a published release
+### Milestone 4: Replace the preview with a stable npm release
 
-Outcome: the viewer uses a published GenomeSpy release containing the required master changes, and the temporary snapshot workaround has been removed before the app is deployed. This milestone waits for that release; earlier milestones can proceed with the pinned development snapshot.
+Outcome: the viewer uses a stable GenomeSpy npm release containing the required changes before Pages publication. Local snapshot tooling is already removed; development uses the pinned App preview until the stable release is available.
 
-Affected areas: package dependencies and lockfile, vendor artifacts, snapshot preparation script, snapshot-only configuration/CI, dependency-version display, and development documentation.
+Affected areas: App dependency URL and lockfile, dependency identity display, any remaining package compatibility configuration, and development documentation.
 
-Verification: confirm that the selected release includes the required Figwig, metadata, plugin, and session APIs; install matching App/Core versions from npm in a fresh checkout; verify dependency resolution; run type checks, focused behavior tests, the production build, and local/remote file-opening smoke tests. Confirm there are no local archive dependencies, snapshot fallback, preparation script, vendor snapshot directory, or neighboring-checkout requirements. Ordinary package compatibility configuration may remain only if the released packages still require it, with its purpose documented separately.
+Verification: confirm that the selected release includes the required Figwig, metadata, plugin, and session APIs; install the released App package and its matching transitive Core dependency in a fresh checkout; verify dependency resolution; run type checks, focused behavior tests, the production build, and local/remote file-opening smoke tests. Confirm there are no local archive dependencies, snapshot fallback, preparation script, vendor snapshot directory, or neighboring-checkout requirements. Ordinary package compatibility configuration may remain only if the released packages still require it, with its purpose documented separately.
 
-Documentation: replace snapshot setup/refresh instructions with ordinary npm installation and updates; retain required third-party attribution; record the selected released versions.
+Documentation: replace preview update instructions with ordinary npm installation and updates; retain required third-party attribution; record the selected released versions.
 
-Tentative commit: build: replace GenomeSpy snapshot with released packages
+Tentative commit: build: replace GenomeSpy preview with a stable release
 
 ### Milestone 5: Deliver a verified GitHub Pages build
 
@@ -428,19 +417,19 @@ Tentative commit: ci: deploy verified viewer builds to GitHub Pages
 - A remote source-plus-state URL reloads under the Pages repository base. A local open never exposes a reusable blob URL.
 - Invalid files, inaccessible URLs, ignored ranges, and initial lazy-load failures produce a visible error and allow another valid open.
 - The production site loads its CSS, icons/fonts where used, and lazy chunks correctly from a clean deployment.
-- Before first deployment, dependency inspection and a clean production build demonstrate that matching published App/Core packages containing the required changes are used. The development snapshot archives, preparation tooling, fallback paths, and snapshot-only configuration have been removed.
+- Before first deployment, dependency inspection and a clean production build demonstrate that matching published App/Core packages containing the required changes are used. There are no local archive dependencies, preparation tools, or snapshot/preview fallbacks. Any package compatibility configuration still needed is documented.
 
 Use behavioral assertions and small numeric fixtures. Do not snapshot the entire generated spec or duplicate upstream renderer/parser tests. Production browser verification must wait for visible data and inspect public loading errors; an empty canvas with no thrown exception is not success.
 
 ## Risks, open decisions, and follow-up boundaries
 
-- Snapshot archive packaging, transitive Core resolution, and external TypeScript consumption are unproven until milestone 1. Treat failures there as package-boundary findings; document any upstream issue separately instead of silently importing the monorepo's source internals.
-- Blob byte-range fetch was verified in Chromium during exploration, but a full App embedding test is still required. Reader documentation primarily establishes Chromium support; browser claims follow actual smoke results.
+- App packaging currently requires Vite production export conditions and the existing dialog typing bridge. These upstream package-boundary findings are recorded above; the viewer uses public entry points without importing monorepo source internals.
+- Local and remote App embedding is verified in Chromium. Firefox/WebKit smoke checks remain pending; browser claims follow actual smoke results.
 - Exact-mode overview queries can be expensive. visibleSamples represents sample membership, not vertical viewport culling. Very large track counts need measured follow-up; v1 must not silently truncate samples or promise unlimited scalability. Fast summaries support the default whole-genome view; exact mode remains an explicit, potentially expensive choice.
 - Richer display settings and a side-panel design remain follow-ups. They must preserve the reader's explicit query semantics and the App's public UI boundaries.
-- The required GenomeSpy release must be available and milestone 4 must be complete before the first Pages publication. If release timing changes, continue development and local verification with the snapshot and keep deployment disabled.
+- The required GenomeSpy release must be available and milestone 4 must be complete before the first Pages publication. If release timing changes, continue development and local verification with the pinned preview and keep deployment disabled.
 - The private GitHub repository is genome-spy/figwig-viewer. The expected future Pages base is /figwig-viewer/; public visibility and Pages publication remain later work after milestone 4.
-- The new viewer repository's own license can be selected during setup. Preserve upstream MIT notices and archive provenance regardless. No third-party application code is copied into the viewer implementation; the established browser-only local/URL model is also used by [IGV-Web](https://igvteam.github.io/igv-webapp/).
+- The viewer is MIT-licensed. Preserve upstream MIT notices and annotation provenance. No third-party application code is copied into the viewer implementation; the established browser-only local/URL model is also used by [IGV-Web](https://igvteam.github.io/igv-webapp/).
 
 An independent subagent review was completed on 2026-10-29. Its two P2 findings have been incorporated: Vite explicitly resolves the packaged production entry and the browser suite covers development; remote probing and inspection share a deadline and caller cancellation, while the UI documents App embedding's cancellation boundary.
 

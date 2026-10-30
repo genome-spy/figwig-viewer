@@ -2,7 +2,7 @@ import { html, showMessageDialog, type AppPlugin } from "@genome-spy/app";
 import { faFolderOpen, faCircleInfo } from "@fortawesome/free-solid-svg-icons";
 import type { PreparedSource } from "./figwigSource";
 import type { QueryMode } from "./createViewerSpec";
-import snapshot from "../vendor/genomespy/snapshot.json";
+import packageManifest from "../package.json";
 
 interface FileContext {
     readonly source: PreparedSource | undefined;
@@ -68,8 +68,10 @@ export function createFigwigPlugin(
                                 <dd>
                                     ${fields.length ? fields.join(", ") : "None"}
                                 </dd>
-                                <dt>GenomeSpy snapshot</dt>
-                                <dd>${snapshot.commit.slice(0, 12)}</dd>
+                                <dt>GenomeSpy App dependency</dt>
+                                <dd>
+                                    ${packageManifest.dependencies["@genome-spy/app"]}
+                                </dd>
                             </dl>
                             <p>Use View settings to import metadata columns.</p>
                             ${

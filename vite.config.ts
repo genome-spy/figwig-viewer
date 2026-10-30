@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
     base: process.env.VIEWER_BASE_PATH ?? "/figwig-viewer/",
     resolve: {
-        // App's npm archive includes production JS, not its development source entry.
+        // App's archive includes production JS, not its development source entry.
         conditions: ["browser", "module", "production"],
     },
     server: {
