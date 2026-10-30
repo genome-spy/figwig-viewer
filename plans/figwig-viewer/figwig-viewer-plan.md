@@ -435,3 +435,27 @@ Use behavioral assertions and small numeric fixtures. Do not snapshot the entire
 An independent subagent review was completed on 2026-10-29. Its two P2 findings have been incorporated: Vite explicitly resolves the packaged production entry and the browser suite covers development; remote probing and inspection share a deadline and caller cancellation, while the UI documents App embedding's cancellation boundary.
 
 During implementation, keep this document current. Retain it for draft discussion, then reconcile completed/deferred tasks and retire the temporary plan before the implementation branch is merged.
+
+## Merge disposition (2026-10-30)
+
+Implementation, preview migration, annotation composition, and the Pages workflow
+are complete and verified. The repository is now public and Pages is enabled.
+The user authorized merging and publishing this temporary demo.
+
+Remaining tasks have been reviewed for this demo:
+
+- Discard stable-release migration as a publication prerequisite; the pinned
+  preview is explicitly approved. A future dependency update remains optional.
+- Discard assembly inference/switching from this demo; hg38 remains fixed and
+  the separate upstream issue #629 is linked in README.md.
+- Discard broader Firefox/WebKit certification and additional grouping checks
+  from this demo's publication criteria. Only Chromium has been verified.
+- Discard recent-file persistence, local-session restoration, custom
+  authentication, richer presets, and a side panel from this implementation.
+- Discard hosted-site verification as a pre-merge prerequisite: it must follow
+  the first deployment from main. The merge execution will verify the deployed
+  URL, bundled assets, and the public example; README.md retains deployment
+  instructions and known limitations.
+
+Retire this temporary plan before merging. Its decisions remain in branch history;
+README.md describes the delivered demo and operational instructions.
