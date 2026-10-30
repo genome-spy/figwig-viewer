@@ -157,7 +157,7 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
 ### Architecture and current decisions
 
 - Pin development packages to master commit
-  `febc402867c5e1a833d7b876c9909b0cb49d95b5`, exported from committed bytes.
+  `bb361bfc722fde88a5e1cd8132a7d5e5fce633c1`, exported from committed bytes.
   This includes the App lifecycle and the updated Figwig reader. Use only public
   App/Core entry points. Keep the release migration and no-Pages-with-snapshots
   requirements in milestones 4 and 5.
@@ -319,21 +319,28 @@ annotation/App/canvas identities across two synthetic Figwig opens. Whole-genome
 and detailed screenshots were visually inspected. No private file was accessed
 in this browser verification and no annotation data was copied into production.
 
-## Snapshot refresh after the shared-scale fix (2026-10-30)
+## Snapshot refresh after the shared-scale lifecycle fix (2026-10-30)
 
-GenomeSpy #633 was squash-merged as
-`febc402867c5e1a833d7b876c9909b0cb49d95b5`. Rebuild both App/Core archives from
-that exact master commit through the existing clean export/build/pack script.
-The manifest, archive checksums, dependency paths, and lockfile now reference the
-merged fix; the previous archives are removed. App/Core and Figwig remain deduped.
-This is still a temporary development snapshot, to be removed before publication.
+GenomeSpy master commit `bb361bfc722fde88a5e1cd8132a7d5e5fce633c1` preserves
+physical scale instances across declaration edits and view mutations when the
+scale type is unchanged. It removes the WebGL workaround from #633 and keeps the
+original dynamic-opacity implementation; #635 is closed as superseded. The WebGL
+pixel and semantic-zoom regressions remain. Upstream validation passed all 5,431
+unit tests, workspace type checks, and nine embed browser tests.
 
-Verification passed: archive SHA-256 checks, TypeScript, 10 unit tests, formatting,
-production build, and all six Chromium flows. The restarted normal dev server was
-also checked with actual hosted annotations and a synthetic Figwig: cytobands,
-cCREs, and genes stayed aligned after insertion, replacement, and broad/detailed
-zooming; signed signal rendered at base resolution. All source statuses completed
-without browser errors, and the WebGL screenshots were visually inspected.
+Both App/Core archives are rebuilt from that exact committed master snapshot
+through the clean export/build/pack script. Manifest checksums, dependency paths,
+and lockfile must agree; App/Core and Figwig must remain deduped. Remove the
+previous archives and retain the requirement to replace snapshots with an npm
+release before publication.
+
+Viewer verification passed: archive checksums and dependency deduplication,
+type checks, 10 unit tests, formatting, production build, and all six Chromium
+flows. The normal dev server on port 5173 was also checked with public annotations
+and a synthetic Figwig opened at whole-genome scale before zooming in. RefSeq
+bodies, exons, and arrows appeared at detailed zoom and hid again when zooming
+out. All sources completed without browser errors; the rendered screenshot was
+visually inspected. This order covers the previously missed semantic-zoom failure.
 
 ## Implementation record (2026-10-29)
 
