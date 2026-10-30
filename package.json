@@ -1,0 +1,38 @@
+{
+  "name": "figwig-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-only viewer for local and remote Figwig files",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": "^22.22.1 || ^24 || >=26",
+    "npm": ">=10.9.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "tsc --noEmit",
+    "test": "vitest run --reporter=agent",
+    "test:e2e": "playwright test",
+    "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.4.2",
+    "@fortawesome/free-solid-svg-icons": "^6.4.2",
+    "@genome-spy/app": "https://pkg.pr.new/@genome-spy/app@58bd423",
+    "@genome-spy/figwig": "0.2.4",
+    "generic-filehandle2": "^2.5.1",
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  }
+}

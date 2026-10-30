@@ -1,0 +1,20 @@
+{
+  "writer": {
+    "repository": "https://github.com/jmschrei/figwig",
+    "commit": "c0e5d6522c677b9f03cd6831e2dbcea759866628",
+    "version": "0.2.0",
+    "python": "3.12.13",
+    "numpy": "2.5.4",
+    "numba": "0.68.0"
+  },
+  "files": {
+    "replacement.fw": {
+      "bytes": 2370,
+      "sha256": "c8c28acfb0d7c499906f156def771eb9436e4856699feb841aa2a51b0e29bf5a"
+    },
+    "signed.fw": {
+      "bytes": 2370,
+      "sha256": "153345bb8a68ed7b41f58029c3bcbbfe43908a510a5e058025489ec6dc272d99"
+    }
+  }
+}

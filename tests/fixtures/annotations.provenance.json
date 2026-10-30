@@ -1,0 +1,14 @@
+{
+  "writer": {
+    "repository": "https://github.com/jackh726/bigtools",
+    "package": "pybigtools",
+    "version": "0.3.0",
+    "python": "3.12.13"
+  },
+  "files": {
+    "annotations.bb": {
+      "bytes": 845,
+      "sha256": "e6852aee4d961b3422eb3c57b478af810a93c990d1c40d785d884f70e7c126b7"
+    }
+  }
+}

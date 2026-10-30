@@ -1,0 +1,140 @@
+{
+  "description": [
+    "Chromosome Ideogram from Cytobands",
+    "Shows a compact hg38 ideogram built from UCSC cytoband intervals with layered rectangles, ranged band labels, and dashed chromosome separators.",
+    "Data source: mirrored copy of UCSC's hg38 cytoBand track (`cytoBand.txt.gz`). UCSC states that its downloadable data files and database tables are freely available for public and commercial use."
+  ],
+  "name": "ideogram-track",
+  "view": {
+    "stroke": "black"
+  },
+  "height": 24,
+  "data": {
+    "url": "https://data.genomespy.app/genomes/hg38/cytoBand.txt.gz",
+    "format": {
+      "type": "tsv",
+      "columns": ["chrom", "chromStart", "chromEnd", "name", "gieStain"]
+    }
+  },
+  "transform": [
+    {
+      "type": "filter",
+      "expr": "!test(/_/, datum.chrom)"
+    }
+  ],
+  "encoding": {
+    "x": {
+      "chrom": "chrom",
+      "pos": "chromStart",
+      "type": "locus"
+    },
+    "x2": {
+      "chrom": "chrom",
+      "pos": "chromEnd"
+    }
+  },
+  "resolve": {
+    "scale": {
+      "color": "independent"
+    }
+  },
+  "layer": [
+    {
+      "title": "Cytoband",
+      "mark": "rect",
+      "encoding": {
+        "color": {
+          "field": "gieStain",
+          "type": "nominal",
+          "scale": {
+            "domain": [
+              "gneg",
+              "gpos25",
+              "gpos50",
+              "gpos75",
+              "gpos100",
+              "acen",
+              "stalk",
+              "gvar"
+            ],
+            "range": [
+              "#f0f0f0",
+              "#e0e0e0",
+              "#d0d0d0",
+              "#c0c0c0",
+              "#a0a0a0",
+              "#cc4444",
+              "#338833",
+              "#000000"
+            ]
+          },
+          "legend": null
+        }
+      }
+    },
+    {
+      "mark": {
+        "type": "text",
+        "align": "center",
+        "baseline": "middle",
+        "paddingX": 4,
+        "tooltip": null
+      },
+      "encoding": {
+        "color": {
+          "field": "gieStain",
+          "type": "nominal",
+          "scale": {
+            "domain": [
+              "gneg",
+              "gpos25",
+              "gpos50",
+              "gpos75",
+              "gpos100",
+              "acen",
+              "stalk",
+              "gvar"
+            ],
+            "range": [
+              "black",
+              "black",
+              "black",
+              "black",
+              "black",
+              "black",
+              "white",
+              "white"
+            ]
+          },
+          "legend": null
+        },
+        "text": {
+          "field": "name",
+          "type": "nominal"
+        }
+      }
+    },
+    {
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.chromStart == 0 && datum.chrom != 'chr1'"
+        }
+      ],
+      "encoding": {
+        "x2": null
+      },
+      "mark": {
+        "type": "rule",
+        "color": "#a0a0a0",
+        "strokeDash": [3, 3],
+        "strokeDashOffset": 2
+      }
+    }
+  ],
+  "title": {
+    "text": "Cytobands",
+    "orient": "none"
+  },
+  "configurableVisibility": true
+}
