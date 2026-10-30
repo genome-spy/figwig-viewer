@@ -245,11 +245,12 @@ test("local and cross-origin sources render the same signed hg38 signal", async 
     expect(local.barCount).toBeGreaterThan(0);
 
     await page.getByRole("button", { name: "Open", exact: true }).click();
+    // A readable Content-Range is optional: verify real browser CORS filtering.
     await page
         .getByLabel("File URL", { exact: true })
-        .fill(fixtureOrigin + "/signed.fw");
+        .fill(fixtureOrigin + "/unexposed-range.fw");
     await page.getByRole("button", { name: "Open URL", exact: true }).click();
-    await expectOpened(page, "signed.fw");
+    await expectOpened(page, "unexposed-range.fw");
     await navigate(page);
     const remote = await inspectBaseResolution(page);
     expect(remote.heights).toEqual(local.heights);
@@ -258,7 +259,7 @@ test("local and cross-origin sources render the same signed hg38 signal", async 
         page.getByRole("button", { name: "Share", exact: true }),
     ).toBeVisible();
     expect(new URL(page.url()).searchParams.get("url")).toBe(
-        fixtureOrigin + "/signed.fw",
+        fixtureOrigin + "/unexposed-range.fw",
     );
 });
 

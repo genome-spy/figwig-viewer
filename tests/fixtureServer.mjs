@@ -19,10 +19,12 @@ const server = createServer((request, response) => {
 
     if (pathname !== "/no-cors.fw") {
         response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setHeader(
-            "Access-Control-Expose-Headers",
-            "Content-Range, Content-Length",
-        );
+        if (pathname !== "/unexposed-range.fw") {
+            response.setHeader(
+                "Access-Control-Expose-Headers",
+                "Content-Range, Content-Length",
+            );
+        }
     }
     if (pathname === "/health") {
         response.end("ready");
@@ -41,6 +43,7 @@ const server = createServer((request, response) => {
         "/header-stall.fw",
         "/invalid.fw",
         "/no-cors.fw",
+        "/unexposed-range.fw",
     ]);
     if (!filePaths.has(pathname)) {
         response.writeHead(404);

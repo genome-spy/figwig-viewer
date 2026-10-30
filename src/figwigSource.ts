@@ -103,7 +103,7 @@ function parseRemoteUrl(input: string): URL {
 async function probeRangeAccess(
     url: string,
     signal: AbortSignal,
-): Promise<number> {
+): Promise<number | undefined> {
     let response: Response;
     try {
         response = await fetch(url, {
@@ -125,13 +125,14 @@ async function probeRangeAccess(
             );
         }
 
-        const match = /^bytes 0-0\/([1-9]\d*)$/i.exec(
-            response.headers.get("Content-Range") ?? "",
-        );
+        const contentRange = response.headers.get("Content-Range");
+        if (contentRange === null) return undefined;
+
+        const match = /^bytes 0-0\/([1-9]\d*)$/i.exec(contentRange);
         const size = match ? Number(match[1]) : Number.NaN;
         if (!Number.isSafeInteger(size)) {
             throw new Error(
-                "The server must return a valid Content-Range header and expose it through CORS.",
+                "The server returned an invalid Content-Range header.",
             );
         }
         return size;

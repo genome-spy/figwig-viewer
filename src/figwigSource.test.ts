@@ -78,14 +78,43 @@ describe("Figwig source inspection", () => {
         expect(cancel).toHaveBeenCalledOnce();
     });
 
-    it("requires a CORS-visible file size in the range response", async () => {
+    it("opens a remote file when Content-Range is not exposed", async () => {
+        const file = await fixtureFile();
         vi.stubGlobal(
             "fetch",
-            vi.fn().mockResolvedValue(new Response(null, { status: 206 })),
+            vi.fn(async (_url: string, request: RequestInit) => {
+                const range = new Headers(request.headers).get("range")!;
+                const match = /^bytes=(\d+)-(\d+)$/.exec(range)!;
+                const bytes = await file
+                    .slice(Number(match[1]), Number(match[2]) + 1)
+                    .arrayBuffer();
+                return new Response(bytes, { status: 206 });
+            }),
+        );
+        const source = await inspectFigwigSource(
+            "https://example.org/signals.fw",
+        );
+        expect(source.size).toBeUndefined();
+        expect(source.tracks.map((track) => track.name)).toEqual([
+            "sample-a",
+            "sample-b",
+        ]);
+        source.dispose();
+    });
+
+    it("rejects a malformed visible Content-Range", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn().mockResolvedValue(
+                new Response(null, {
+                    status: 206,
+                    headers: { "Content-Range": "invalid" },
+                }),
+            ),
         );
         await expect(
             inspectFigwigSource("https://example.org/signals.fw"),
-        ).rejects.toThrow("Content-Range");
+        ).rejects.toThrow("invalid Content-Range");
     });
 
     it("lets a caller cancel a stalled range probe", async () => {

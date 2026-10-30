@@ -75,9 +75,10 @@ with data read directly from GenomeSpy's hosted annotation assets. cCREs load wh
 the visible span is at most 1 Mb; a hint appears at broader scales. RefSeq supports
 gene-name search and detailed transcripts as you zoom in.
 
-Remote sources must return HTTP 206 for byte ranges, allow the viewer's origin
-through Access-Control-Allow-Origin, and expose Content-Range through
-Access-Control-Expose-Headers. A server that ignores Range is rejected before its
+Remote sources must return HTTP 206 for byte ranges and allow the viewer's origin
+through Access-Control-Allow-Origin. Exposing Content-Range through
+Access-Control-Expose-Headers is optional; file size is shown as unknown when
+that header is unavailable. A server that ignores Range is rejected before its
 body is consumed. HTTP URLs are accepted only for localhost development. URLs
 requiring custom authorization headers are not supported.
 

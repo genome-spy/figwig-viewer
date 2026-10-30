@@ -23,9 +23,9 @@
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.4.2",
     "@fortawesome/free-solid-svg-icons": "^6.4.2",
-    "@genome-spy/app": "file:vendor/genomespy/genome-spy-app-1.2.0-bb361bfc722f.tgz",
-    "@genome-spy/core": "file:vendor/genomespy/genome-spy-core-1.2.0-bb361bfc722f.tgz",
-    "@genome-spy/figwig": "0.2.3",
+    "@genome-spy/app": "file:vendor/genomespy/genome-spy-app-1.2.0-c5565d606cae.tgz",
+    "@genome-spy/core": "file:vendor/genomespy/genome-spy-core-1.2.0-c5565d606cae.tgz",
+    "@genome-spy/figwig": "0.2.4",
     "generic-filehandle2": "^2.5.1",
     "lit": "^3.3.0"
   },

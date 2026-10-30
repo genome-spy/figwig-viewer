@@ -83,7 +83,7 @@ Before the first Pages deployment, select a published GenomeSpy release containi
 
 For local input, inspect with FigWig and BlobFile(file). After validation, create one blob URL for the mounted App's signal and metadata sources. The existing signal source accepts a URL and constructs RemoteFile internally; a File object cannot be passed directly through that grammar.
 
-For remote input, preserve the complete URL, including meaningful query parameters. Perform a bounded single-byte range probe before handing the source to the reader. Require a valid 206 response and accessible Content-Range; cancel an ignored-range response before reading its body. This avoids the reader accepting an initial 200 response and downloading a potentially huge file. A failed browser fetch should explain possible CORS, network, or authorization causes without claiming the browser can identify which one occurred.
+For remote input, preserve the complete URL, including meaningful query parameters. Perform a bounded single-byte range probe before handing the source to the reader. Require HTTP 206; Content-Range exposure is optional and only supplies the displayed file size. Cancel an ignored-range response before reading its body. This avoids the reader accepting an initial 200 response and downloading a potentially huge file. A failed browser fetch should explain possible CORS, network, or authorization causes without claiming the browser can identify which one occurred.
 
 Read the header and tracks, validate the supported-file boundary, and close the inspection reader after collecting the required immutable information. Do not scan signal chunks to discover coverage at startup.
 
@@ -157,7 +157,7 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
 ### Architecture and current decisions
 
 - Pin development packages to master commit
-  `bb361bfc722fde88a5e1cd8132a7d5e5fce633c1`, exported from committed bytes.
+  `c5565d606cae8a129b67e798ef273269822120ad`, exported from committed bytes.
   This includes the App lifecycle and the updated Figwig reader. Use only public
   App/Core entry points. Keep the release migration and no-Pages-with-snapshots
   requirements in milestones 4 and 5.
@@ -233,7 +233,7 @@ BaseDialog for local/URL opening, replaces same-kind SampleViews, and uses fixed
 hg38 with viewport signal autoscaling. Fast browsing is the default after
 large-file usage exposed the cost of exact-mode queries; exact means remain
 explicitly available. Summary preflight is not included. The master snapshot and
-Figwig 0.2.3 are installed with matching deduped App/Core packages.
+Figwig 0.2.4 are installed with matching deduped App/Core packages.
 
 Verification passed: TypeScript, 10 focused unit tests, production build, and all
 six revised Chromium flows. Browser assertions cover actual remote metadata/filter
@@ -319,28 +319,33 @@ annotation/App/canvas identities across two synthetic Figwig opens. Whole-genome
 and detailed screenshots were visually inspected. No private file was accessed
 in this browser verification and no annotation data was copied into production.
 
-## Snapshot refresh after the shared-scale lifecycle fix (2026-10-30)
+## Current snapshot and remote-reader compatibility (2026-10-30)
 
-GenomeSpy master commit `bb361bfc722fde88a5e1cd8132a7d5e5fce633c1` preserves
-physical scale instances across declaration edits and view mutations when the
-scale type is unchanged. It removes the WebGL workaround from #633 and keeps the
-original dynamic-opacity implementation; #635 is closed as superseded. The WebGL
-pixel and semantic-zoom regressions remain. Upstream validation passed all 5,431
-unit tests, workspace type checks, and nine embed browser tests.
+GenomeSpy master commit `c5565d606cae8a129b67e798ef273269822120ad` includes
+Figwig 0.2.4 in the bundled App/Core readers. Remote signal and metadata reads
+accept an unknown physical file size when CORS hides Content-Range. The viewer's
+range check requires HTTP 206 and treats the exposed file size as optional.
+File information displays Unknown when that size is unavailable. Known physical
+sizes, truncated reads, cancellation, and rejection of ignored ranges remain
+validated.
 
-Both App/Core archives are rebuilt from that exact committed master snapshot
-through the clean export/build/pack script. Manifest checksums, dependency paths,
-and lockfile must agree; App/Core and Figwig must remain deduped. Remove the
-previous archives and retain the requirement to replace snapshots with an npm
-release before publication.
+This snapshot also preserves physical scales across same-type declaration edits
+and view mutations, retaining the original opacity and WebGL callbacks. The
+semantic-zoom and WebGL pixel regressions remain.
 
-Viewer verification passed: archive checksums and dependency deduplication,
-type checks, 10 unit tests, formatting, production build, and all six Chromium
-flows. The normal dev server on port 5173 was also checked with public annotations
-and a synthetic Figwig opened at whole-genome scale before zooming in. RefSeq
-bodies, exons, and arrows appeared at detailed zoom and hid again when zooming
-out. All sources completed without browser errors; the rendered screenshot was
-visually inspected. This order covers the previously missed semantic-zoom failure.
+Rebuild both App/Core archives from the exact committed master snapshot through
+the clean export/build/pack script. Manifest checksums, dependency paths, and the
+lockfile must agree, with App/Core and Figwig deduped. Remove the previous
+archives. Matching released App/Core packages must replace snapshots before Pages
+publication.
+
+Verification passed: type checks, 11 unit tests, formatting, production build,
+archive checksums, dependency deduplication, and all six Chromium flows. The
+cross-origin signal comparison uses real browser CORS filtering without exposing
+Content-Range. The hosted chromatin URL also opened in the normal dev server with
+that header hidden from JavaScript: overview and chr1 navigation completed with
+signal rows, no loading errors, and HTTP 206 responses. The rendered view was
+visually inspected.
 
 ## Implementation record (2026-10-29)
 
