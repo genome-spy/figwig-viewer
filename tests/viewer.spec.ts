@@ -138,11 +138,17 @@ test("startup uses the native App and Open dialog, including the aggregation cho
     await page.goto("http://127.0.0.1:5173/figwig-viewer/");
     await expect(page.locator(".genome-spy-app")).toHaveCount(1);
     await expect(page.locator(".genome-spy-container canvas")).toHaveCount(1);
+    await expect(page.locator("genome-spy-toolbar")).toContainText(
+        "Experimental Figwig Viewer",
+    );
     await page.keyboard.press("Escape");
     await expect(page.locator("figwig-open-dialog")).toBeHidden();
     await page.getByRole("button", { name: "Open", exact: true }).click();
     await expect(page.getByLabel("Signal aggregation")).toHaveValue("fast");
     await openLocal(page);
+    await expect(page.locator("genome-spy-search-field input")).toHaveValue(
+        "chr1:1-chrM:16,569",
+    );
     await expect(
         page.getByRole("button", { name: "Share", exact: true }),
     ).toHaveCount(0);

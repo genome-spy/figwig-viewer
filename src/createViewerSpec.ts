@@ -7,16 +7,11 @@ export type QueryMode = "fast" | "exact";
 
 export const DEFAULT_QUERY_MODE: QueryMode = "fast";
 
-export type InitialLocus = [
-    { chrom: string; pos: number },
-    { chrom: string; pos: number },
-];
-
 /** Keep the application and its hg38 navigation alive between file opens. */
 export function createAppSpec(): AppRootSpec {
     return {
         name: "tracks",
-        description: "Figwig Viewer",
+        description: "Experimental Figwig Viewer",
         assembly: "hg38",
         scales: {
             x: { name: "locus", type: "locus", zoom: true },
@@ -90,25 +85,6 @@ export function createViewerSpec(
             },
         },
     };
-}
-
-/** Establish a bounded first view without changing the fixed assembly. */
-export function getInitialLocus(source: PreparedSource): InitialLocus {
-    const chromosome = source.header.chromosomes.find(
-        ({ length }) => length > 0,
-    );
-    if (!chromosome) {
-        throw new Error("This Figwig file contains no non-empty chromosomes.");
-    }
-
-    return [
-        { chrom: chromosome.name, pos: 0 },
-        {
-            chrom: chromosome.name,
-            // Explicit locus domains include the upper coordinate.
-            pos: Math.min(chromosome.length, 1_000_000) - 1,
-        },
-    ];
 }
 
 /** Bind remote bookmarks to the exact source, assembly, query mode, and format. */

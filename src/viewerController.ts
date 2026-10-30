@@ -4,7 +4,6 @@ import {
     createAppSpec,
     createPersistenceContext,
     createViewerSpec,
-    getInitialLocus,
     type QueryMode,
 } from "./createViewerSpec";
 import { inspectFigwigSource, type PreparedSource } from "./figwigSource";
@@ -91,8 +90,6 @@ export class ViewerController {
             this.#inspection = undefined;
             this.#publish("mounting", "Loading visualization…", false);
 
-            const preserveLocus =
-                this.#source !== undefined && this.#kind === candidate.kind;
             await this.#removeCohort();
             if (this.#kind !== candidate.kind) {
                 // Embed mode is fixed by App; a source-kind change needs a new shell.
@@ -103,12 +100,6 @@ export class ViewerController {
             const api = this.#api!;
             updateSourceUrl(candidate, mode);
             await api.setPersistenceContext(context);
-            // Bound the domain before insertion can activate any lazy signal request.
-            if (!preserveLocus) {
-                await api
-                    .getScaleResolutionByName("locus")!
-                    .zoomTo(getInitialLocus(candidate));
-            }
             this.#cohort = await api.views.insert(
                 api.views.get({ scope: [], view: "tracks" }),
                 spec,

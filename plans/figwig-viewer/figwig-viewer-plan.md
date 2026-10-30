@@ -95,7 +95,7 @@ Generate the following native structure:
 - A Figwig metadata source with initialLoad false. Identity is still available; users import attributes through App's existing interface. Do not import thousands of arbitrary columns automatically or add a parallel metadata inference system.
 - One signal track with sampleId as the sample channel, locus start/end coordinates, quantitative score, a zero-inclusive y scale, and a neutral Signal label. Preserve negative and zero values. Use a signed-capable mark configuration, with no nonnegative-value filter.
 - Signal track selection driven by the native visibleSamples expression, so App sample membership changes affect the requested tracks.
-- Fast query mode by default, with exact means available explicitly, and a bounded initial interval: the first chromosome with positive length, from zero to at most one megabase. A sparse file may initially show zero signal; normal locus navigation remains available. Do not guess a biologically meaningful location.
+- Fast query mode by default, with exact means available explicitly. Start at the whole-genome hg38 extent supplied by the native locus scale, unless restoring a shared locus. Do not choose an arbitrary initial interval.
 
 The recipe's mm10 assumption, rowLabel, tissue hierarchy, palettes, bookmarks, annotation tracks, assay labels, and nonnegative filtering are not part of the template. Fast browsing uses approximate summaries at coarse scales and counts missing values as zero; the opening dialog explains this and offers exact means explicitly. Fast mode requires suitable summaries at coarse scales.
 
@@ -173,8 +173,9 @@ hg38 for now. GenomeSpy #628 has shipped to master in #631.
   SampleSpec. Rely on App for cohort/history cleanup and reader disposal.
 - Use hg38 as supplied by the host. Do not infer or compare assemblies or implement
   #629. Test fixtures use canonical hg38 names/lengths with short sparse writes.
-  Opening begins at a bounded interval of a file chromosome, within hg38. Preserve
-  the existing locus when replacing an established cohort in the same App.
+  Opening begins at the whole-genome hg38 extent. Preserve the existing locus
+  when replacing an established cohort in the same App. The root description
+  shown in the toolbar is "Experimental Figwig Viewer".
 - Default to Fast browsing for local and remote files. Exact means remain an
   explicit choice and remote exact-mode links preserve `mode=exact` on reload.
   Keep the aggregation explanation visible in the opening dialog; do not silently
@@ -221,8 +222,9 @@ Verification and acceptance:
 - Formatting, TypeScript, focused Vitest tests, production build and Chromium flows
   pass. Inspect the actual opening dialog and rendered viewer visually. Do not
   re-upload the previously denied large local file through the integrated browser.
-- README describes fixed hg38, native dialogs, mode-change exception, fast default and exact opt-in,
-  snapshot identity and release-before-Pages condition.
+- README describes fixed hg38, whole-genome opening, native dialogs, mode-change
+  exception, fast default and exact opt-in, snapshot identity and
+  release-before-Pages condition.
 
 Tentative commit: `feat: open hg38 cohorts in the native GenomeSpy interface`.
 
@@ -233,7 +235,7 @@ large-file usage exposed the cost of exact-mode queries; exact means remain
 explicitly available. Summary preflight is not included. The master snapshot and
 Figwig 0.2.3 are installed with matching deduped App/Core packages.
 
-Verification passed: TypeScript, 11 focused unit tests, production build, and all
+Verification passed: TypeScript, 10 focused unit tests, production build, and all
 six revised Chromium flows. Browser assertions cover actual remote metadata/filter
 and locus replay, same-kind shell/canvas identity and cohort/history reset, signed
 local/remote SVG equivalence, aggregation choice, cancellation/errors, and native
@@ -341,7 +343,7 @@ Use behavioral assertions and small numeric fixtures. Do not snapshot the entire
 
 - Snapshot archive packaging, transitive Core resolution, and external TypeScript consumption are unproven until milestone 1. Treat failures there as package-boundary findings; document any upstream issue separately instead of silently importing the monorepo's source internals.
 - Blob byte-range fetch was verified in Chromium during exploration, but a full App embedding test is still required. Reader documentation primarily establishes Chromium support; browser claims follow actual smoke results.
-- Exact-mode overview queries can be expensive. visibleSamples represents sample membership, not vertical viewport culling. Very large track counts need measured follow-up; v1 must not silently truncate samples or promise unlimited scalability. A bounded initial locus limits one dimension of startup work.
+- Exact-mode overview queries can be expensive. visibleSamples represents sample membership, not vertical viewport culling. Very large track counts need measured follow-up; v1 must not silently truncate samples or promise unlimited scalability. Fast summaries support the default whole-genome view; exact mode remains an explicit, potentially expensive choice.
 - Richer display settings and a side-panel design remain follow-ups. They must preserve the reader's explicit query semantics and the App's public UI boundaries.
 - The required GenomeSpy release must be available and milestone 4 must be complete before the first Pages publication. If release timing changes, continue development and local verification with the snapshot and keep deployment disabled.
 - The private GitHub repository is genome-spy/figwig-viewer. The expected future Pages base is /figwig-viewer/; public visibility and Pages publication remain later work after milestone 4.

@@ -62,8 +62,8 @@ Both modes preserve negative and zero values. The signal y-axis autoscales to th
 current viewport. A file without suitable summaries may fail at coarse zooms in
 fast mode.
 
-The first file starts at a bounded interval of its first non-empty chromosome.
-Navigate using GenomeSpy's locus/search field. Replacing a file with another of the
+The viewer starts at the whole-genome hg38 extent. Navigate using GenomeSpy's
+locus/search field. Shared links restore their saved locus. Replacing a file with another of the
 same source kind keeps the App, canvas, and current locus, and replaces only the
 SampleView. Imported metadata, sample operations, selections, and undo history reset
 for the new cohort. Independent annotation siblings can be retained by this

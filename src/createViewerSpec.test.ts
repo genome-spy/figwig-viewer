@@ -4,7 +4,6 @@ import {
     createAppSpec,
     createPersistenceContext,
     createViewerSpec,
-    getInitialLocus,
 } from "./createViewerSpec";
 import { inspectFigwigSource } from "./figwigSource";
 
@@ -20,7 +19,7 @@ describe("viewer specification", () => {
         const spec = createAppSpec();
         expect(spec).toMatchObject({
             name: "tracks",
-            description: "Figwig Viewer",
+            description: "Experimental Figwig Viewer",
             assembly: "hg38",
             scales: { x: { name: "locus", type: "locus", zoom: true } },
             resolve: { scale: { x: "shared" } },
@@ -102,32 +101,6 @@ describe("viewer specification", () => {
             expect(context).not.toEqual(
                 await createPersistenceContext(first, "fast"),
             );
-        } finally {
-            source.dispose();
-        }
-    });
-
-    it("bounds initial navigation and skips empty chromosomes", async () => {
-        const source = await fixtureSource();
-        try {
-            expect(getInitialLocus(source)).toEqual([
-                { chrom: "chr1", pos: 0 },
-                { chrom: "chr1", pos: 999_999 },
-            ]);
-            const shortSource = {
-                ...source,
-                header: {
-                    ...source.header,
-                    chromosomes: [
-                        { ...source.header.chromosomes[0], length: 0 },
-                        { ...source.header.chromosomes[1], length: 256 },
-                    ],
-                },
-            };
-            expect(getInitialLocus(shortSource)).toEqual([
-                { chrom: "chr2", pos: 0 },
-                { chrom: "chr2", pos: 255 },
-            ]);
         } finally {
             source.dispose();
         }
